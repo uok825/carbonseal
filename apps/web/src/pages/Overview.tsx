@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, Globe, Lock, Sparkles } from 'lucide-react';
 
-import { Card, Stat } from '../components/ui';
+import { Stat } from '../components/ui';
 import { navigate, useSnapshot } from '../lib/app-state';
 
 const fmt = new Intl.NumberFormat('en-US');
@@ -69,7 +69,7 @@ export const OverviewPage = () => {
       </section>
 
       <section className="section">
-        <div className="grid grid-4">
+        <div className="stats">
           <Stat label="Accredited verifiers" value={snapshot?.verifiers.length ?? '—'} />
           <Stat label="Attested reports" value={activeReports} />
           <Stat label="Certificates issued" value={fmt.format(Number(snapshot?.certificateCount ?? 0n))} />
@@ -83,11 +83,11 @@ export const OverviewPage = () => {
         </div>
         <div className="grid grid-3">
           {STEPS.map((step, i) => (
-            <Card key={step.title} className="how-card">
-              <div className="how-num">{i + 1}</div>
+            <div key={step.title} className="how-card">
+              <div className="how-num">{String(i + 1).padStart(2, '0')}</div>
               <h3>{step.title}</h3>
               <p>{step.body}</p>
-            </Card>
+            </div>
           ))}
         </div>
       </section>
@@ -97,7 +97,7 @@ export const OverviewPage = () => {
           <h2 className="section-title">The privacy boundary</h2>
           <span className="section-meta">Enforced by the Compact contract, not by policy</span>
         </div>
-        <Card className="boundary">
+        <div className="boundary">
           <div className="private-side">
             <h3>
               <Lock size={15} /> Stays with the producer
@@ -124,7 +124,7 @@ export const OverviewPage = () => {
               ))}
             </ul>
           </div>
-        </Card>
+        </div>
       </section>
     </>
   );

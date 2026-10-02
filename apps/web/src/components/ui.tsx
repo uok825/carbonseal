@@ -32,7 +32,7 @@ export const Button = ({
   </button>
 );
 
-type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent' | 'private';
+type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent';
 
 export const Badge = ({ tone = 'neutral', dot = false, children }: { tone?: Tone; dot?: boolean; children: ReactNode }) => (
   <span className={`badge ${tone === 'neutral' ? '' : `badge-${tone}`}`}>
@@ -78,10 +78,10 @@ export const Card = ({ className = '', children }: { className?: string; childre
 );
 
 export const Stat = ({ label, value }: { label: string; value: ReactNode }) => (
-  <Card className="stat">
+  <div>
     <div className="stat-label">{label}</div>
     <div className="stat-value">{value}</div>
-  </Card>
+  </div>
 );
 
 export const Meter = ({ value, max }: { value: bigint; max: bigint }) => {

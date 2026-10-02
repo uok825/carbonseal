@@ -4,7 +4,7 @@ import { formatIntensity, formatTonnes, productName } from '@carbonseal/api';
 import { Landmark, Plus, UserMinus } from 'lucide-react';
 import { useState } from 'react';
 
-import { Badge, Button, Card, Empty, Field, Hash, Modal, PageHead, PublicTag } from '../components/ui';
+import { Badge, Button, Empty, Field, Hash, Modal, PageHead, PublicTag } from '../components/ui';
 import { errorMessage, useBackend, usePublicKey, useSnapshot, useToast } from '../lib/app-state';
 
 export const RegistryPage = () => {
@@ -56,8 +56,7 @@ export const RegistryPage = () => {
           </span>
         </div>
         {snapshot?.verifiers.length ? (
-          <Card>
-            <div className="table-wrap">
+          <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
@@ -93,7 +92,6 @@ export const RegistryPage = () => {
                 </tbody>
               </table>
             </div>
-          </Card>
         ) : (
           <Empty icon={<Landmark size={22} />} title="No accredited verifiers" />
         )}
@@ -104,8 +102,7 @@ export const RegistryPage = () => {
           <h2 className="section-title">Attestations</h2>
           <PublicTag />
         </div>
-        <Card>
-          <div className="table-wrap">
+        <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
@@ -139,7 +136,6 @@ export const RegistryPage = () => {
               </tbody>
             </table>
           </div>
-        </Card>
       </section>
 
       <section className="section">
@@ -147,8 +143,7 @@ export const RegistryPage = () => {
           <h2 className="section-title">Certificates</h2>
           <span className="section-meta">{snapshot?.certificateCount.toString() ?? 0} issued</span>
         </div>
-        <Card>
-          <div className="table-wrap">
+        <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
@@ -176,7 +171,6 @@ export const RegistryPage = () => {
               </tbody>
             </table>
           </div>
-        </Card>
       </section>
 
       {adding && <AddVerifierModal onClose={() => setAdding(false)} />}

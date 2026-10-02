@@ -131,8 +131,7 @@ export const ProducerPage = () => {
         {shipments.length === 0 ? (
           <Empty icon={<Ship size={22} />} title="No shipments certified yet" />
         ) : (
-          <Card>
-            <div className="table-wrap">
+          <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
@@ -162,7 +161,6 @@ export const ProducerPage = () => {
                 </tbody>
               </table>
             </div>
-          </Card>
         )}
       </section>
 
@@ -572,7 +570,7 @@ const CertifyModal = ({
             </div>
           )}
           {error && (
-            <div className="banner" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
+            <div className="banner danger">
               <X size={15} /> Rejected by the contract: {error}
             </div>
           )}

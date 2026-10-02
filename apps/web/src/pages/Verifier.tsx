@@ -149,8 +149,7 @@ export const VerifierPage = () => {
         {attestedByMe.length === 0 ? (
           <Empty icon={<BadgeCheck size={22} />} title="Nothing attested yet" />
         ) : (
-          <Card>
-            <div className="table-wrap">
+          <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
@@ -202,7 +201,6 @@ export const VerifierPage = () => {
                 </tbody>
               </table>
             </div>
-          </Card>
         )}
       </section>
 

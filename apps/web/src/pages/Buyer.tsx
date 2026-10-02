@@ -13,7 +13,7 @@ import {
 import { AlertTriangle, Check, EyeOff, Search, SearchX, ShieldCheck, ShieldX } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
-import { Badge, Card, Empty, Hash, PageHead, PublicTag } from '../components/ui';
+import { Badge, Empty, Hash, PageHead, PublicTag } from '../components/ui';
 import { navigate, useBackend, useSnapshot } from '../lib/app-state';
 
 const findByReference = (snapshot: RegistrySnapshot, query: string): CertificateView | undefined => {
@@ -104,8 +104,7 @@ export const BuyerPage = ({ initialQuery }: { initialQuery?: string }) => {
         {mine.length === 0 ? (
           <Empty icon={<Search size={22} />} title="No certificates for this EORI" />
         ) : (
-          <Card>
-            <div className="table-wrap">
+          <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
@@ -136,7 +135,6 @@ export const BuyerPage = ({ initialQuery }: { initialQuery?: string }) => {
                 </tbody>
               </table>
             </div>
-          </Card>
         )}
       </section>
     </>
@@ -150,8 +148,8 @@ const CertificateResult = ({ certificate: c, snapshot }: { certificate: Certific
   const sound = attestation !== undefined && !attestation.revoked && verifierAccredited;
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
-      <Card>
+    <div className="grid" style={{ gap: 24 }}>
+      <div>
         <div className="verdict">
           <div className={`verdict-seal ${sound ? '' : 'bad'}`}>
             {sound ? <ShieldCheck size={28} /> : <ShieldX size={28} />}
@@ -169,7 +167,7 @@ const CertificateResult = ({ certificate: c, snapshot }: { certificate: Certific
           </div>
           <PublicTag>Read from ledger</PublicTag>
         </div>
-        <div className="card-foot" style={{ display: 'block', padding: 24 }}>
+        <div style={{ marginTop: 36 }}>
           <dl className="kv">
             <div>
               <dt>Product</dt>
@@ -220,10 +218,10 @@ const CertificateResult = ({ certificate: c, snapshot }: { certificate: Certific
             </div>
           </dl>
         </div>
-      </Card>
+      </div>
 
-      <div className="grid grid-2">
-        <Card className="card-pad">
+      <div className="grid grid-2" style={{ gap: 48, marginTop: 24 }}>
+        <div>
           <div className="card-title" style={{ marginBottom: 12 }}>
             What this proves
           </div>
@@ -241,30 +239,30 @@ const CertificateResult = ({ certificate: c, snapshot }: { certificate: Certific
               All shipments certified against this report fit within its verified production.
             </li>
           </ul>
-        </Card>
-        <Card className="card-pad">
+        </div>
+        <div>
           <div className="card-title" style={{ marginBottom: 12 }}>
             What stays private
           </div>
           <ul className="list-plain">
             <li>
-              <EyeOff size={14} color="var(--private)" />
+              <EyeOff size={14} color="var(--text-3)" />
               The exact intensity, emissions and production volume.
             </li>
             <li>
-              <EyeOff size={14} color="var(--private)" />
+              <EyeOff size={14} color="var(--text-3)" />
               The installation, its energy mix and its suppliers.
             </li>
             <li>
-              <EyeOff size={14} color="var(--private)" />
+              <EyeOff size={14} color="var(--text-3)" />
               How much verified capacity the producer has left.
             </li>
           </ul>
-        </Card>
+        </div>
       </div>
 
       {!sound && (
-        <div className="banner" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
+        <div className="banner danger">
           <AlertTriangle size={15} /> Do not rely on this certificate until the producer re-certifies under an active
           attestation.
         </div>
