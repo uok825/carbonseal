@@ -15,7 +15,7 @@ export const DEMO_PARTICIPANTS = {
   operator: { name: 'Marmara Steel Works', detail: 'Steel producer, Kocaeli · demo' },
 } as const;
 
-export const DEMO_BUYER = { name: 'Rhine Metals GmbH', eori: 'DE7344019823' } as const;
+export const DEMO_BUYER = { name: 'Rhine Metals GmbH', eori: 'DE-DEMO-0000001' } as const;
 
 /** Deterministic demo keys so the demo looks the same on every load. Never use for real. */
 export const DEMO_SECRET_SEEDS = {
