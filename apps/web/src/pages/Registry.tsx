@@ -5,22 +5,23 @@ import { Landmark, Plus, UserMinus } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge, Button, Empty, Field, Hash, Modal, PageHead, PublicTag } from '../components/ui';
-import { errorMessage, useBackend, usePublicKey, useSnapshot, useToast } from '../lib/app-state';
+import { RegistryStatus } from '../components/RegistryStatus';
+import { errorMessage, useApp, useNameFor, useSnapshot, useToast } from '../lib/app-state';
 
 export const RegistryPage = () => {
-  const backend = useBackend();
-  const authority = backend.participants.authority;
+  const { session, contractAddress } = useApp();
+  const nameFor = useNameFor();
   const snapshot = useSnapshot();
-  const myPk = usePublicKey(authority.client);
+  const myPk = session?.publicKey;
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const isAuthority = myPk !== undefined && snapshot?.authority === myPk;
+  const isAuthority = session !== undefined && snapshot?.authority === myPk;
 
   const remove = async (pk: string) => {
     setBusy(pk);
     try {
-      await authority.client.removeVerifier(pk);
+      await session?.client.removeVerifier(pk);
       toast({ tone: 'success', title: 'Verifier removed' });
     } catch (error) {
       toast({ tone: 'error', title: 'Could not remove verifier', body: errorMessage(error) });
@@ -38,7 +39,15 @@ export const RegistryPage = () => {
           </>
         }
         title="Public ledger"
-        description="This is the registry’s entire public state on Midnight. Emissions, production volumes and installation details never appear here."
+        description={
+          <>
+            This is the registry’s entire public state on Midnight. Emissions, production volumes and installation
+            details never appear here.
+            <span className="check-row subtle" style={{ marginTop: 10, fontSize: 12.5 }}>
+              Contract <Hash value={contractAddress} />
+            </span>
+          </>
+        }
         actions={
           isAuthority ? (
             <Button variant="primary" icon={<Plus size={15} />} onClick={() => setAdding(true)}>
@@ -48,11 +57,13 @@ export const RegistryPage = () => {
         }
       />
 
+      <RegistryStatus />
+
       <section>
         <div className="section-head">
           <h2 className="section-title">Accredited verifiers</h2>
           <span className="section-meta">
-            Authority: {backend.nameFor(snapshot?.authority ?? '') ?? (snapshot && <Hash value={snapshot.authority} />)}
+            Authority: {(snapshot && nameFor(snapshot.authority)) ?? (snapshot && <Hash value={snapshot.authority} />)}
           </span>
         </div>
         {snapshot?.verifiers.length ? (
@@ -69,7 +80,7 @@ export const RegistryPage = () => {
                 <tbody>
                   {snapshot.verifiers.map((pk) => (
                     <tr key={pk}>
-                      <td>{backend.nameFor(pk) ?? <span className="subtle">Unnamed</span>}</td>
+                      <td>{nameFor(pk) ?? <span className="subtle">—</span>}</td>
                       <td>
                         <Hash value={pk} />
                       </td>
@@ -123,8 +134,8 @@ export const RegistryPage = () => {
                     <td>
                       {productName(a.productCode)} <span className="subtle">· {a.period.toString()}</span>
                     </td>
-                    <td>{backend.nameFor(a.operator) ?? <Hash value={a.operator} chars={4} />}</td>
-                    <td>{backend.nameFor(a.verifier) ?? <Hash value={a.verifier} chars={4} />}</td>
+                    <td>{nameFor(a.operator) ?? <Hash value={a.operator} chars={4} />}</td>
+                    <td>{nameFor(a.verifier) ?? <Hash value={a.verifier} chars={4} />}</td>
                     <td className="num">{formatTonnes(a.claimedTonnes)}</td>
                     <td>
                       <Badge tone={a.revoked ? 'danger' : 'success'} dot>
@@ -179,7 +190,7 @@ export const RegistryPage = () => {
 };
 
 const AddVerifierModal = ({ onClose }: { onClose: () => void }) => {
-  const backend = useBackend();
+  const { session } = useApp();
   const toast = useToast();
   const [pk, setPk] = useState('');
   const [saving, setSaving] = useState(false);
@@ -188,7 +199,8 @@ const AddVerifierModal = ({ onClose }: { onClose: () => void }) => {
   const submit = async () => {
     setSaving(true);
     try {
-      await backend.participants.authority.client.addVerifier(pk.trim().replace(/^0x/, '').toLowerCase());
+      if (!session) throw new Error('Connect the authority wallet first');
+      await session.client.addVerifier(pk.trim().replace(/^0x/, '').toLowerCase());
       toast({ tone: 'success', title: 'Verifier accredited' });
       onClose();
     } catch (error) {

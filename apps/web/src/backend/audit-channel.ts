@@ -5,13 +5,32 @@ import { BehaviorSubject } from 'rxjs';
 
 import type { AuditChannel, AuditPackage } from './types';
 
-/** In-browser hand-off between operator and verifier. Stands in for e-mail or an audit portal. */
-export const createAuditChannel = (initial: readonly AuditPackage[] = []): AuditChannel => {
-  const requests = new BehaviorSubject<readonly AuditPackage[]>(initial);
+/**
+ * A verifier's inbox of audit packages received off-chain. Kept in this
+ * browser's localStorage, per registry, because packages hold private reports.
+ */
+export const createAuditChannel = (storageKey: string): AuditChannel => {
+  const load = (): readonly AuditPackage[] => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? (JSON.parse(raw) as string[]).map(decodeAuditPackage) : [];
+    } catch {
+      return [];
+    }
+  };
+  const requests = new BehaviorSubject<readonly AuditPackage[]>(load());
+  const save = (next: readonly AuditPackage[]) => {
+    requests.next(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next.map(encodeAuditPackage)));
+    } catch {
+      // Storage may be unavailable (private mode); the inbox still works for this session.
+    }
+  };
   return {
     requests$: requests,
-    submit: (pkg) => requests.next([...requests.value.filter((r) => r.commitment !== pkg.commitment), pkg]),
-    dismiss: (commitment) => requests.next(requests.value.filter((r) => r.commitment !== commitment)),
+    submit: (pkg) => save([...requests.value.filter((r) => r.commitment !== pkg.commitment), pkg]),
+    dismiss: (commitment) => save(requests.value.filter((r) => r.commitment !== commitment)),
   };
 };
 

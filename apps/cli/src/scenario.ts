@@ -98,7 +98,7 @@ const main = async () => {
         commitment: coilCommitment,
         thresholdKgPerTonne: 1_900n,
         tonnes: 2_500n,
-        buyerRef: 'DE-DEMO-0000001',
+        buyerRef: 'EU-TEST-BUYER-01',
       }),
     );
     await expectRejection('certify beyond verified production', 'Shipment exceeds verified production', () =>
@@ -107,7 +107,7 @@ const main = async () => {
         commitment: coilCommitment,
         thresholdKgPerTonne: 1_900n,
         tonnes: 117_501n,
-        buyerRef: 'DE-DEMO-0000001',
+        buyerRef: 'EU-TEST-BUYER-01',
       }),
     );
     await expectRejection('certify below real intensity', 'Emission intensity exceeds threshold', () =>
@@ -116,7 +116,7 @@ const main = async () => {
         commitment: coilCommitment,
         thresholdKgPerTonne: 1_699n,
         tonnes: 10n,
-        buyerRef: 'DE-DEMO-0000001',
+        buyerRef: 'EU-TEST-BUYER-01',
       }),
     );
 

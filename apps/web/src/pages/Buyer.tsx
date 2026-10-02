@@ -13,8 +13,9 @@ import {
 import { AlertTriangle, Check, EyeOff, Search, SearchX, ShieldCheck, ShieldX } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { RegistryStatus } from '../components/RegistryStatus';
 import { Badge, Empty, Hash, PageHead, PublicTag } from '../components/ui';
-import { navigate, useBackend, useSnapshot } from '../lib/app-state';
+import { navigate, useNameFor, useSnapshot } from '../lib/app-state';
 
 const findByReference = (snapshot: RegistrySnapshot, query: string): CertificateView | undefined => {
   const q = query.trim();
@@ -29,11 +30,11 @@ const findByReference = (snapshot: RegistrySnapshot, query: string): Certificate
 };
 
 export const BuyerPage = ({ initialQuery }: { initialQuery?: string }) => {
-  const backend = useBackend();
+  const nameFor = useNameFor();
   const snapshot = useSnapshot();
-  const [input, setInput] = useState(initialQuery ?? backend.hints?.sampleShipment ?? '');
+  const [input, setInput] = useState(initialQuery ?? '');
   const [query, setQuery] = useState(initialQuery ?? '');
-  const [eori, setEori] = useState(backend.hints?.buyerRef ?? '');
+  const [eori, setEori] = useState('');
 
   useEffect(() => {
     if (initialQuery !== undefined) {
@@ -76,6 +77,10 @@ export const BuyerPage = ({ initialQuery }: { initialQuery?: string }) => {
           Verify
         </button>
       </form>
+
+      <div style={{ marginTop: 16 }}>
+        <RegistryStatus />
+      </div>
 
       {query && snapshot && (
         <section className="section">
@@ -126,7 +131,7 @@ export const BuyerPage = ({ initialQuery }: { initialQuery?: string }) => {
                       >
                         <td className="mono">{c.shipmentLabel ?? c.shipmentId.slice(0, 12)}</td>
                         <td>{productName(c.productCode)}</td>
-                        <td>{attestation ? (backend.nameFor(attestation.operator) ?? 'Unknown operator') : '—'}</td>
+                        <td>{attestation ? (nameFor(attestation.operator) ?? <Hash value={attestation.operator} chars={4} />) : '—'}</td>
                         <td className="num">{formatTonnes(c.tonnes)}</td>
                         <td className="num">≤ {formatIntensity(c.thresholdKgPerTonne)}</td>
                       </tr>
@@ -142,7 +147,7 @@ export const BuyerPage = ({ initialQuery }: { initialQuery?: string }) => {
 };
 
 const CertificateResult = ({ certificate: c, snapshot }: { certificate: CertificateView; snapshot: RegistrySnapshot }) => {
-  const backend = useBackend();
+  const nameFor = useNameFor();
   const attestation = snapshot.attestations.find((a) => a.commitment === c.reportCommitment);
   const verifierAccredited = attestation !== undefined && snapshot.verifiers.includes(attestation.verifier);
   const sound = attestation !== undefined && !attestation.revoked && verifierAccredited;
@@ -188,12 +193,12 @@ const CertificateResult = ({ certificate: c, snapshot }: { certificate: Certific
             </div>
             <div>
               <dt>Supplier</dt>
-              <dd>{attestation ? (backend.nameFor(attestation.operator) ?? <Hash value={attestation.operator} />) : '—'}</dd>
+              <dd>{attestation ? (nameFor(attestation.operator) ?? <Hash value={attestation.operator} />) : '—'}</dd>
             </div>
             <div>
               <dt>Verifier</dt>
               <dd style={{ display: 'grid', gap: 4, justifyItems: 'start' }}>
-                {attestation ? (backend.nameFor(attestation.verifier) ?? <Hash value={attestation.verifier} />) : '—'}
+                {attestation ? (nameFor(attestation.verifier) ?? <Hash value={attestation.verifier} />) : '—'}
                 {verifierAccredited ? (
                   <Badge tone="success" dot>
                     Accredited

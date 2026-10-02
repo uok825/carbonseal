@@ -31,7 +31,7 @@ export type ShipmentRequest = {
  *
  * Every participant keeps its own private state, exactly as it would in its own
  * wallet; a call runs the real circuit logic against the shared ledger with the
- * caller's private state. Used by the contract tests and the web demo.
+ * caller's private state. Used by the contract and API tests.
  */
 export class CarbonSealSimulator {
   readonly contract = new Contract<CarbonSealPrivateState>(witnesses);

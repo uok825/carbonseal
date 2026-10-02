@@ -4,13 +4,10 @@ import type { CarbonSealClient } from '@carbonseal/api';
 import type { InstallationReport } from '@carbonseal/contract';
 import type { Observable } from 'rxjs';
 
-export type Role = 'authority' | 'verifier' | 'operator';
-
-export type Participant = {
-  readonly role: Role;
-  readonly name: string;
-  readonly detail: string;
+/** A connected wallet acting on the registry. One wallet is one CarbonSeal identity. */
+export type Session = {
   readonly client: CarbonSealClient;
+  readonly publicKey: string;
 };
 
 /**
@@ -31,15 +28,3 @@ export interface AuditChannel {
   submit(pkg: AuditPackage): void;
   dismiss(commitment: string): void;
 }
-
-export type Backend = {
-  readonly mode: 'demo' | 'network';
-  readonly networkLabel: string;
-  readonly contractAddress: string;
-  readonly participants: Readonly<Record<Role, Participant>>;
-  readonly audits: AuditChannel;
-  /** Pre-filled values for the demo walkthrough; absent on a real network. */
-  readonly hints?: { readonly buyerName: string; readonly buyerRef: string; readonly sampleShipment: string };
-  /** Display name for a public key, from an off-chain directory. */
-  nameFor(publicKey: string): string | undefined;
-};

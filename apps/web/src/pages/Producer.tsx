@@ -3,6 +3,7 @@
 import {
   type AttestationView,
   CBAM_PRODUCTS,
+  type CarbonSealClient,
   type StoredReport,
   buildReport,
   bytesToLabel,
@@ -14,10 +15,11 @@ import {
   productName,
 } from '@carbonseal/api';
 import { Check, FilePlus2, Factory, Lock, PackageCheck, Send, Ship, X } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import { encodeAuditPackage } from '../backend/audit-channel';
-import type { Participant } from '../backend/types';
+import type { Session } from '../backend/types';
+import { ConnectPrompt } from '../components/ConnectPrompt';
 import {
   Badge,
   Button,
@@ -33,15 +35,7 @@ import {
   type StepState,
   Steps,
 } from '../components/ui';
-import {
-  errorMessage,
-  useAuditRequests,
-  useBackend,
-  usePrivateReports,
-  usePublicKey,
-  useSnapshot,
-  useToast,
-} from '../lib/app-state';
+import { errorMessage, useApp, usePrivateReports, useSnapshot, useToast } from '../lib/app-state';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,12 +48,62 @@ const statusOf = (attestation: AttestationView | undefined, pendingAudit: boolea
   return { label: 'Draft', tone: 'neutral' };
 };
 
+/** Commitments this browser has packaged for audit, so their cards can say so. */
+const useSentForAudit = (contractAddress: string): [ReadonlySet<string>, (commitment: string) => void] => {
+  const key = `carbonseal:sent-for-audit:${contractAddress}`;
+  const read = (): Set<string> => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(key) ?? '[]') as string[]);
+    } catch {
+      return new Set();
+    }
+  };
+  const [sent, setSent] = useState(read);
+  const markSent = useCallback(
+    (commitment: string) => {
+      const next = new Set(read()).add(commitment);
+      try {
+        localStorage.setItem(key, JSON.stringify([...next]));
+      } catch {
+        // Not persisted; still shown for this session.
+      }
+      setSent(next);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [key],
+  );
+  return [sent, markSent];
+};
+
+const PAGE_DESCRIPTION =
+  'Installation reports stay on this device. Send them to your verifier for audit, then certify each shipment against your buyer’s threshold.';
+
 export const ProducerPage = () => {
-  const backend = useBackend();
-  const operator = backend.participants.operator;
+  const { session } = useApp();
+  if (!session) {
+    return (
+      <>
+        <PageHead
+          eyebrow={
+            <>
+              <Factory size={13} /> Producer workspace
+            </>
+          }
+          title="Your installations"
+          description={PAGE_DESCRIPTION}
+        />
+        <ConnectPrompt action="manage installation reports" />
+      </>
+    );
+  }
+  return <ProducerWorkspace session={session} />;
+};
+
+const ProducerWorkspace = ({ session }: { session: Session }) => {
+  const { contractAddress } = useApp();
   const snapshot = useSnapshot();
-  const audits = useAuditRequests();
-  const [reports, refreshReports] = usePrivateReports(operator.client);
+  const [sentForAudit, markSent] = useSentForAudit(contractAddress);
+  const [reports, refreshReports] = usePrivateReports(session.client);
   const [creating, setCreating] = useState(false);
   const [certifying, setCertifying] = useState<string | null>(null);
 
@@ -79,8 +123,8 @@ export const ProducerPage = () => {
             <Factory size={13} /> Producer workspace
           </>
         }
-        title={operator.name}
-        description="Installation reports stay on this device. Send them to your verifier for audit, then certify each shipment against your buyer’s threshold."
+        title="Your installations"
+        description={PAGE_DESCRIPTION}
         actions={
           <>
             <Button icon={<FilePlus2 size={15} />} onClick={() => setCreating(true)}>
@@ -114,8 +158,9 @@ export const ProducerPage = () => {
                 key={stored.commitment}
                 stored={stored}
                 attestation={attestationFor(stored.commitment)}
-                pendingAudit={audits.some((a) => a.commitment === stored.commitment)}
-                operator={operator}
+                pendingAudit={sentForAudit.has(stored.commitment)}
+                session={session}
+                onSent={() => markSent(stored.commitment)}
                 onCertify={() => setCertifying(stored.commitment)}
               />
             ))}
@@ -166,7 +211,7 @@ export const ProducerPage = () => {
 
       {creating && (
         <NewReportModal
-          operator={operator}
+          client={session.client}
           onClose={() => setCreating(false)}
           onSaved={refreshReports}
         />
@@ -176,7 +221,7 @@ export const ProducerPage = () => {
           reports={certifiable}
           initial={certifying}
           attestationFor={attestationFor}
-          operator={operator}
+          client={session.client}
           onClose={() => setCertifying(null)}
         />
       )}
@@ -188,31 +233,51 @@ const ReportCard = ({
   stored,
   attestation,
   pendingAudit,
-  operator,
+  session,
+  onSent,
   onCertify,
 }: {
   stored: StoredReport;
   attestation: AttestationView | undefined;
   pendingAudit: boolean;
-  operator: Participant;
+  session: Session;
+  onSent: () => void;
   onCertify: () => void;
 }) => {
-  const backend = useBackend();
-  const operatorPk = usePublicKey(operator.client);
   const toast = useToast();
   const { report, commitment } = stored;
   const status = statusOf(attestation, pendingAudit);
   const claimed = attestation?.claimedTonnes ?? 0n;
-  const [exported, setExported] = useState<string | null>(null);
+  const [packaging, setPackaging] = useState(false);
+  const [company, setCompany] = useState(() => {
+    try {
+      return localStorage.getItem('carbonseal:company-name') ?? '';
+    } catch {
+      return '';
+    }
+  });
 
-  const sendForAudit = () => {
-    if (operatorPk === undefined) return;
-    const pkg = { commitment, operatorPk, operatorName: operator.name, report, submittedAt: Date.now() };
-    if (backend.mode === 'demo') {
-      backend.audits.submit(pkg);
-      toast({ tone: 'success', title: 'Sent for audit', body: `${backend.participants.verifier.name} can now review it.` });
-    } else {
-      setExported(encodeAuditPackage(pkg));
+  const pkg = encodeAuditPackage({
+    commitment,
+    operatorPk: session.publicKey,
+    operatorName: company.trim() || 'Unnamed operator',
+    report,
+    submittedAt: Date.now(),
+  });
+
+  const copyPackage = async () => {
+    try {
+      localStorage.setItem('carbonseal:company-name', company.trim());
+    } catch {
+      // Convenience only.
+    }
+    try {
+      await navigator.clipboard.writeText(pkg);
+      toast({ tone: 'success', title: 'Audit package copied', body: 'Send it to your verifier over a secure channel.' });
+      onSent();
+      setPackaging(false);
+    } catch {
+      toast({ tone: 'error', title: 'Copy failed', body: 'Select the package text and copy it manually.' });
     }
   };
 
@@ -267,23 +332,31 @@ const ReportCard = ({
             Certify shipment
           </Button>
         ) : !attestation && !pendingAudit ? (
-          <Button size="sm" icon={<Send size={13} />} onClick={sendForAudit}>
+          <Button size="sm" icon={<Send size={13} />} onClick={() => setPackaging(true)}>
             Send for audit
           </Button>
         ) : null}
       </div>
-      {exported && (
+      {packaging && (
         <Modal
-          title="Audit package"
-          subtitle="Send this to your verifier over a secure channel. It contains your private report."
-          onClose={() => setExported(null)}
+          title="Send for audit"
+          subtitle="The package holds your private report. Send it to your verifier over a secure channel."
+          onClose={() => setPackaging(false)}
           footer={
-            <Button variant="primary" onClick={() => void navigator.clipboard?.writeText(exported)}>
-              Copy package
-            </Button>
+            <>
+              <Button variant="ghost" onClick={() => setPackaging(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={() => void copyPackage()}>
+                Copy package
+              </Button>
+            </>
           }
         >
-          <textarea className="textarea" readOnly value={exported} rows={8} />
+          <Field label="Company name" hint="Shown to your verifier with the report">
+            <input className="input" value={company} onChange={(e) => setCompany(e.target.value)} />
+          </Field>
+          <textarea className="textarea" readOnly value={pkg} rows={6} onFocus={(e) => e.currentTarget.select()} />
         </Modal>
       )}
     </Card>
@@ -291,11 +364,11 @@ const ReportCard = ({
 };
 
 const NewReportModal = ({
-  operator,
+  client,
   onClose,
   onSaved,
 }: {
-  operator: Participant;
+  client: CarbonSealClient;
   onClose: () => void;
   onSaved: () => void;
 }) => {
@@ -324,7 +397,7 @@ const NewReportModal = ({
   const save = async () => {
     setSaving(true);
     try {
-      await operator.client.storeReport(
+      await client.storeReport(
         buildReport({
           installationRef: installationRef.trim(),
           productCode: BigInt(productCode),
@@ -420,16 +493,15 @@ const CertifyModal = ({
   reports,
   initial,
   attestationFor,
-  operator,
+  client,
   onClose,
 }: {
   reports: readonly StoredReport[];
   initial: string;
   attestationFor: (commitment: string) => AttestationView | undefined;
-  operator: Participant;
+  client: CarbonSealClient;
   onClose: () => void;
 }) => {
-  const backend = useBackend();
   const toast = useToast();
   const [commitment, setCommitment] = useState(initial);
   const [shipmentRef, setShipmentRef] = useState('');
@@ -448,10 +520,7 @@ const CertifyModal = ({
   const capacityOk = tonnesN > 0n && tonnesN <= remaining;
   const valid = shipmentRef.trim() !== '' && buyerRef.trim() !== '' && intensityOk && capacityOk;
 
-  const labels =
-    backend.mode === 'demo'
-      ? ['Load private report as witness', 'Run certify circuit', 'Proof generation (skipped in demo)', 'Update ledger']
-      : ['Load private report as witness', 'Run certify circuit', 'Generate proof & sign in wallet', 'Confirm on chain'];
+  const labels = ['Load private report as witness', 'Run certify circuit', 'Generate proof & sign in wallet', 'Confirm on chain'];
   const steps = labels.map((label, i) => ({
     label,
     state: (phase > i ? 'done' : phase === i ? 'active' : 'pending') as StepState,
@@ -465,7 +534,7 @@ const CertifyModal = ({
     await sleep(300);
     setPhase(2);
     try {
-      await operator.client.certify({
+      await client.certify({
         shipmentRef: shipmentRef.trim(),
         commitment,
         thresholdKgPerTonne: thresholdN,

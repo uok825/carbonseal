@@ -165,11 +165,6 @@ textarea {
   box-shadow: 0 0 0 3px var(--success-soft);
 }
 
-.env-dot.demo {
-  background: var(--warning);
-  box-shadow: 0 0 0 3px var(--warning-soft);
-}
-
 .main {
   max-width: 1180px;
   margin: 0 auto;

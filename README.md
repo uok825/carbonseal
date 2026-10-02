@@ -94,18 +94,31 @@ Then:
 ```bash
 npm install
 npm run ci        # compile contract → build → typecheck → test
-npm run dev       # web app on http://localhost:5173 (demo mode)
+npm run dev       # web app on http://localhost:5173, reading the preprod registry
 ```
 
-### Demo mode (default)
+### Web app
 
-`VITE_NETWORK_ID=demo` runs the **compiled contract in the browser** through `compact-runtime`. It does not generate proofs or use a network. The app is seeded with a fictional producer, verifier and buyer through ordinary circuit calls. Seed data lives only in [`apps/web/src/demo/mock-data.ts`](apps/web/src/demo/mock-data.ts) and is never used in network mode.
+The app reads the registry's public state straight from the Midnight indexer. No wallet is needed for the following pages:
+- **Overview:** live registry figures.
+- **Buyer:** verify a shipment, e.g. `CLI-MURFA8GB` on preprod.
+- **Registry:** the whole public ledger.
 
-A good walkthrough:
-1. **Verifier**: attest the pending rebar report.
-2. **Producer**: certify a rebar shipment, e.g. 1,000 t at a 700 kg/t threshold.
-3. **Buyer**: look up the shipment reference.
-4. **Registry**: confirm that no emission or production figure appears anywhere.
+The **Producer** and **Verifier** workspaces act on chain, so they need a Midnight wallet.
+- Use Lace or 1AM, on the same network, with a local proof server: `docker run -p 6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server -v`.
+- The wallet balances, signs and submits each transaction.
+- Your CarbonSeal key and private reports stay in the browser.
+
+How a producer, verifier and authority work together:
+1. **Verifier:** connect a wallet and copy the verifier key shown in the console.
+2. **Authority:** accredit that key with `npm run admin:preprod -w @carbonseal/cli -- add-verifier <key>`.
+3. **Producer:** connect, create a report, then *Send for audit*. This copies an audit package (it contains the private report) to send to the verifier off-chain.
+4. **Verifier:** *Import package*. The console recomputes the commitment from the report before *Attest* is enabled.
+5. **Producer:** *Certify shipment*. The buyer can now verify it on the Buyer page.
+
+Configuration lives in `apps/web/.env` (see `.env.example`):
+- `VITE_NETWORK_ID`: `preprod` (default), `preview` or `undeployed`.
+- `VITE_CONTRACT_ADDRESS`: defaults to the public preprod registry.
 
 ### Local Midnight network
 
@@ -123,12 +136,7 @@ The scenario does the following:
 - checks that two invalid certifications are rejected;
 - reads the result back through the indexer.
 
-### Preprod
-
-1. Start a proof server: `docker run -p 6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server -v`.
-2. Fund a Lace wallet from the [preprod faucet](https://midnight-tmnight-preprod.nethermind.dev/) and generate tDUST.
-3. Copy `apps/web/.env.example` to `apps/web/.env`, then set `VITE_NETWORK_ID=preprod` and optionally `VITE_CONTRACT_ADDRESS`.
-4. Run `npm run dev`. Choose **Deploy new registry** to become its authority, or join an existing address.
+To use the web app against this devnet, set `VITE_NETWORK_ID=undeployed` and `VITE_CONTRACT_ADDRESS` to the address in `apps/cli/deployments/local.json`.
 
 ## Tests
 
@@ -198,7 +206,11 @@ Set `CARBONSEAL_DEBUG_TX=1` to dump every balanced transaction to `apps/cli/.sta
 
 ## Roadmap
 
-- **Wave 2 (now):** contract, simulator tests, end-to-end demo UI, network client, and runs with real proofs on a local devnet and on preprod. Still to do: test the wallet UI with a real wallet, and remove the demo data.
+- **Wave 2 (now):**
+  - contract and simulator tests;
+  - runs with real proofs on a local devnet and on preprod;
+  - a web app that reads the live registry without a wallet and acts on chain through Lace or 1AM;
+  - still to do: an end-to-end test of the wallet flow with a real browser wallet.
 - **Wave 3:**
   - Playwright e2e against a local devnet (`midnight-local-dev`);
   - selective disclosure of the exact intensity to a named buyer;
@@ -210,6 +222,8 @@ Set `CARBONSEAL_DEBUG_TX=1` to dump every balanced transaction to `apps/cli/.sta
 
 - The emission model is simplified: one product per report, and direct plus indirect emissions only. It does not yet model precursors or the full CBAM methodology.
 - The prototype stores private state unencrypted in `localStorage`.
+- The web app's wallet flow has not been exercised with a real Lace or 1AM wallet yet. The CLI has run every circuit on preprod; the browser read path has been tested against preprod.
+- Lace balances the web app's transactions itself. The CLI's fee-overhead fix for zero-fee transactions therefore does not apply there.
 - The buyer reference (EORI) is currently published as a label.
 - Each successful certification reveals a lower bound on production (the running total), by design.
 

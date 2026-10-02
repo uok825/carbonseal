@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Wallet } from 'lucide-react';
 
-import { useBackend, useRoute } from './lib/app-state';
+import { Button } from './components/ui';
+import { useApp, useRoute } from './lib/app-state';
 import { BuyerPage } from './pages/Buyer';
 import { OverviewPage } from './pages/Overview';
 import { ProducerPage } from './pages/Producer';
@@ -17,8 +18,10 @@ const NAV = [
   { path: 'registry', label: 'Registry' },
 ] as const;
 
+const short = (hex: string) => `${hex.slice(0, 4)}…${hex.slice(-4)}`;
+
 export const App = () => {
-  const backend = useBackend();
+  const { network, contractAddress, session, connect, connecting } = useApp();
   const [section = '', ...rest] = useRoute();
 
   const page = (() => {
@@ -54,13 +57,20 @@ export const App = () => {
             ))}
           </nav>
           <div className="topbar-end">
-            <span className="env-pill" title={backend.contractAddress}>
-              <span className={`env-dot ${backend.mode === 'demo' ? 'demo' : ''}`} />
-              <span className="label">
-                {backend.networkLabel}
-                {backend.mode === 'demo' && ' · demo data'}
-              </span>
+            <span className="env-pill" title={`Registry ${contractAddress}`}>
+              <span className="env-dot" />
+              <span className="label">{network.label}</span>
             </span>
+            {session ? (
+              <span className="env-pill mono" title={session.publicKey}>
+                <Wallet size={13} />
+                <span className="label">{short(session.publicKey)}</span>
+              </span>
+            ) : (
+              <Button size="sm" variant="primary" loading={connecting} onClick={() => void connect()}>
+                Connect wallet
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -68,10 +78,8 @@ export const App = () => {
         {page}
         <footer className="footer">
           <span>CarbonSeal · prototype for the Midnight Buildathon · Apache-2.0</span>
-          <span>
-            {backend.mode === 'demo'
-              ? 'Demo mode: the real contract runs in your browser with fictional data. No proofs are generated.'
-              : `Connected to ${backend.networkLabel}. Every action is proven and submitted from your wallet.`}
+          <span className="mono" title={contractAddress}>
+            {network.label} registry {short(contractAddress)}
           </span>
         </footer>
       </main>

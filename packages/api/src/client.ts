@@ -35,7 +35,7 @@ export type CertifyInput = {
 /**
  * One participant's handle on a CarbonSeal registry.
  *
- * The same interface is backed by the in-process simulator (local demo) and by
+ * The same interface is backed by the in-process simulator (tests) and by
  * midnight-js against a real network, so the UI does not care which it gets.
  * Hex strings are used for all byte values crossing this boundary.
  */

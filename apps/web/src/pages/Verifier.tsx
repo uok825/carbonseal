@@ -14,16 +14,10 @@ import { AlertTriangle, BadgeCheck, ClipboardPaste, Inbox, ShieldCheck, ShieldOf
 import { useState } from 'react';
 
 import { decodeAuditPackage } from '../backend/audit-channel';
-import type { AuditPackage } from '../backend/types';
+import type { AuditPackage, Session } from '../backend/types';
+import { ConnectPrompt } from '../components/ConnectPrompt';
 import { Badge, Button, Card, Empty, Hash, Modal, PageHead, PublicTag } from '../components/ui';
-import {
-  errorMessage,
-  useAuditRequests,
-  useBackend,
-  usePublicKey,
-  useSnapshot,
-  useToast,
-} from '../lib/app-state';
+import { errorMessage, useApp, useAuditRequests, useNameFor, useSnapshot, useToast } from '../lib/app-state';
 
 const relativeTime = (ms: number): string => {
   const minutes = Math.round((Date.now() - ms) / 60_000);
@@ -33,30 +27,54 @@ const relativeTime = (ms: number): string => {
   return hours < 24 ? `${hours} h ago` : `${Math.round(hours / 24)} d ago`;
 };
 
+const PAGE_DESCRIPTION =
+  'Review installation reports shared with you off-chain. Attesting publishes only the report’s commitment, never its contents.';
+
 export const VerifierPage = () => {
-  const backend = useBackend();
-  const verifier = backend.participants.verifier;
+  const { session } = useApp();
+  if (!session) {
+    return (
+      <>
+        <PageHead
+          eyebrow={
+            <>
+              <ShieldCheck size={13} /> Verifier console
+            </>
+          }
+          title="Audit and attest"
+          description={PAGE_DESCRIPTION}
+        />
+        <ConnectPrompt action="review and attest reports" />
+      </>
+    );
+  }
+  return <VerifierConsole session={session} />;
+};
+
+const VerifierConsole = ({ session }: { session: Session }) => {
+  const { audits } = useApp();
+  const nameFor = useNameFor();
   const snapshot = useSnapshot();
-  const myPk = usePublicKey(verifier.client);
+  const myPk = session.publicKey;
   const requests = useAuditRequests();
   const toast = useToast();
   const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const accredited = myPk !== undefined && (snapshot?.verifiers.includes(myPk) ?? false);
+  const accredited = snapshot?.verifiers.includes(myPk) ?? false;
   const attestedByMe = snapshot?.attestations.filter((a) => a.verifier === myPk) ?? [];
   const alreadyAttested = new Set(snapshot?.attestations.map((a) => a.commitment));
 
   const attest = async (pkg: AuditPackage) => {
     setBusy(pkg.commitment);
     try {
-      await verifier.client.attest({
+      await session.client.attest({
         commitment: pkg.commitment,
         operatorPk: pkg.operatorPk,
         productCode: pkg.report.productCode,
         period: pkg.report.period,
       });
-      backend.audits.dismiss(pkg.commitment);
+      audits.dismiss(pkg.commitment);
       toast({ tone: 'success', title: 'Report attested', body: `${pkg.operatorName} can now certify shipments.` });
     } catch (error) {
       toast({ tone: 'error', title: 'Attestation rejected', body: errorMessage(error) });
@@ -68,7 +86,7 @@ export const VerifierPage = () => {
   const revoke = async (commitment: string) => {
     setBusy(commitment);
     try {
-      await verifier.client.revoke(commitment);
+      await session.client.revoke(commitment);
       toast({ tone: 'success', title: 'Attestation revoked', body: 'No further shipments can be certified against it.' });
     } catch (error) {
       toast({ tone: 'error', title: 'Could not revoke', body: errorMessage(error) });
@@ -85,16 +103,14 @@ export const VerifierPage = () => {
             <ShieldCheck size={13} /> Verifier console
           </>
         }
-        title={verifier.name}
+        title="Audit and attest"
         description={
           <>
-            Review installation reports shared with you off-chain. Attesting publishes only the report’s commitment,
-            never its contents.
-            {myPk && (
-              <span className="check-row subtle" style={{ marginTop: 10, fontSize: 12.5 }}>
-                Your verifier key <Hash value={myPk} />
-              </span>
-            )}
+            {PAGE_DESCRIPTION}
+            <span className="check-row subtle" style={{ marginTop: 10, fontSize: 12.5 }}>
+              Your verifier key <Hash value={myPk} />
+              {!accredited && <span>· send it to the registry authority to be accredited</span>}
+            </span>
           </>
         }
         actions={
@@ -134,7 +150,7 @@ export const VerifierPage = () => {
                 attested={alreadyAttested.has(pkg.commitment)}
                 busy={busy === pkg.commitment}
                 onAttest={() => void attest(pkg)}
-                onReject={() => backend.audits.dismiss(pkg.commitment)}
+                onReject={() => audits.dismiss(pkg.commitment)}
               />
             ))}
           </div>
@@ -167,7 +183,7 @@ export const VerifierPage = () => {
                       <td>
                         <Hash value={a.commitment} />
                       </td>
-                      <td>{backend.nameFor(a.operator) ?? <Hash value={a.operator} chars={4} />}</td>
+                      <td>{nameFor(a.operator) ?? <Hash value={a.operator} chars={4} />}</td>
                       <td>
                         {productName(a.productCode)} <span className="subtle">· {a.period.toString()}</span>
                       </td>
@@ -208,7 +224,7 @@ export const VerifierPage = () => {
         <ImportModal
           onClose={() => setImporting(false)}
           onImport={(pkg) => {
-            backend.audits.submit(pkg);
+            audits.submit(pkg);
             setImporting(false);
           }}
         />

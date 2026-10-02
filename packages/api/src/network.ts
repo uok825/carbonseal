@@ -10,6 +10,7 @@ import {
   withReport,
 } from '@carbonseal/contract';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
+import type { PublicDataProvider } from '@midnight-ntwrk/midnight-js-types';
 import { type Observable, map, shareReplay } from 'rxjs';
 
 import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport, TxReceipt } from './client.js';
@@ -21,6 +22,16 @@ import {
 } from './common-types.js';
 import { fromHex, labelToBytes, randomBytes, toHex } from './encoding.js';
 import { type RegistrySnapshot, snapshotFromLedger } from './registry.js';
+
+/**
+ * The live public state of a registry, read from the indexer. Needs no wallet:
+ * this is what buyers and auditors use to verify certificates.
+ */
+export const watchRegistry = (publicData: PublicDataProvider, contractAddress: string): Observable<RegistrySnapshot> =>
+  publicData.contractStateObservable(contractAddress, { type: 'latest' }).pipe(
+    map((state) => snapshotFromLedger(ledger(state.data))),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
 
 const receipt = ({ public: tx }: { public: { txId: string; txHash: string; blockHeight: number } }): TxReceipt => ({
   txId: tx.txId,
@@ -46,12 +57,7 @@ export class CarbonSealNetworkClient implements CarbonSealClient {
   ) {
     this.contractAddress = deployed.deployTxData.public.contractAddress;
     providers.privateStateProvider.setContractAddress(this.contractAddress);
-    this.state$ = providers.publicDataProvider
-      .contractStateObservable(this.contractAddress, { type: 'latest' })
-      .pipe(
-        map((state) => snapshotFromLedger(ledger(state.data))),
-        shareReplay({ bufferSize: 1, refCount: true }),
-      );
+    this.state$ = watchRegistry(providers.publicDataProvider, this.contractAddress);
   }
 
   /** Deploys a new registry; the caller's key becomes the accreditation authority. */

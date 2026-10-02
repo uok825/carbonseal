@@ -2,6 +2,9 @@
 //
 // Wallet connection and provider setup follow midnightntwrk/example-bboard
 // (Apache-2.0), adapted to CarbonSeal.
+//
+// Note: the wallet (Lace, 1AM) balances transactions itself, so the CLI's
+// DUST fee-overhead workaround does not apply here.
 
 import {
   type CarbonSealCircuitKeys,
@@ -28,8 +31,7 @@ import {
 import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import semver from 'semver';
 
-import { createAuditChannel } from './audit-channel';
-import type { Backend, Participant, Role } from './types';
+import type { Session } from './types';
 
 const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
 
@@ -91,35 +93,14 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
 };
 
 /**
- * Connects to the user's wallet and joins (or deploys) a CarbonSeal registry.
- * One wallet is one participant, so every workspace acts through the same client;
- * the contract itself decides which role the wallet's key is allowed to play.
+ * Connects the user's Midnight wallet and joins the registry with it. The
+ * wallet balances, signs and submits every transaction; proofs come from the
+ * proof server the wallet is configured with. The contract decides which role
+ * this wallet's CarbonSeal key may play.
  */
-export const createNetworkBackend = async (networkId: string, contractAddress?: string): Promise<Backend> => {
+export const connectSession = async (networkId: string, contractAddress: string): Promise<Session> => {
   const wallet = await connectWallet(networkId);
   const providers = await createProviders(wallet);
-  const client = contractAddress
-    ? await CarbonSealNetworkClient.join(providers, contractAddress)
-    : await CarbonSealNetworkClient.deploy(providers);
-  const self = await client.publicKey();
-
-  const participant = (role: Role): Participant => ({
-    role,
-    name: 'Your wallet',
-    detail: `Acting as ${role} · ${networkId}`,
-    client,
-  });
-
-  return {
-    mode: 'network',
-    networkLabel: networkId.charAt(0).toUpperCase() + networkId.slice(1),
-    contractAddress: client.contractAddress,
-    participants: {
-      authority: participant('authority'),
-      verifier: participant('verifier'),
-      operator: participant('operator'),
-    },
-    audits: createAuditChannel(),
-    nameFor: (pk) => (pk === self ? 'You' : undefined),
-  };
+  const client = await CarbonSealNetworkClient.join(providers, contractAddress);
+  return { client, publicKey: await client.publicKey() };
 };

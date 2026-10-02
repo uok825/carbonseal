@@ -2,6 +2,7 @@
 
 import { ArrowRight, Check, Globe, Lock, Sparkles } from 'lucide-react';
 
+import { RegistryStatus } from '../components/RegistryStatus';
 import { Stat } from '../components/ui';
 import { navigate, useSnapshot } from '../lib/app-state';
 
@@ -69,6 +70,7 @@ export const OverviewPage = () => {
       </section>
 
       <section className="section">
+        <RegistryStatus />
         <div className="stats">
           <Stat label="Accredited verifiers" value={snapshot?.verifiers.length ?? '—'} />
           <Stat label="Attested reports" value={activeReports} />
