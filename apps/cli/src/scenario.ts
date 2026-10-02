@@ -56,7 +56,7 @@ const expectRejection = async (step: string, reason: string, action: () => Promi
 
 const main = async () => {
   setNetworkId(env.networkId);
-  const wallet = await openWallet(logger, env, walletSeedFor(network));
+  const { provider: wallet, save: saveWallet } = await openWallet(logger, env, walletSeedFor(network));
 
   try {
     logger.info('▶ Deploy registry');
@@ -164,6 +164,7 @@ const main = async () => {
     logger.info(`Recorded ${path.join('apps/cli/deployments', `${network}.json`)}`);
     console.table(steps.map((s) => ({ step: s.step, seconds: s.seconds, block: s.receipt && s.receipt !== 'rejected' ? s.receipt.blockHeight : s.receipt })));
   } finally {
+    await saveWallet().catch((error: unknown) => logger.warn({ error }, 'Could not save wallet state'));
     await wallet.stop();
   }
 };
