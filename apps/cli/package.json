@@ -11,7 +11,10 @@
     "wallet:preprod": "tsx src/wallet-address.ts preprod",
     "wallet:local": "tsx src/wallet-address.ts local",
     "admin:local": "tsx src/admin.ts local",
-    "admin:preprod": "tsx src/admin.ts preprod"
+    "admin:preprod": "tsx src/admin.ts preprod",
+    "wallet:sync:preprod": "tsx src/sync.ts preprod",
+    "bridge:preprod": "tsx src/bridge.ts preprod",
+    "bridge:local": "tsx src/bridge.ts local"
   },
   "devDependencies": {
     "@types/ws": "^8.18.2",

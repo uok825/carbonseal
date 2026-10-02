@@ -16,6 +16,10 @@ import { AppProvider, ToastProvider } from './lib/app-state';
 
 setNetworkId(config.network.id);
 
+if (import.meta.env.VITE_WALLET_BRIDGE === '1') {
+  void import('./backend/dev-bridge').then(({ installDevBridge }) => installDevBridge());
+}
+
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
     <ToastProvider>

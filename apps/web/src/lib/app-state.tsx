@@ -7,6 +7,8 @@ import { type ReactNode, createContext, useCallback, useContext, useEffect, useM
 import type { Observable } from 'rxjs';
 
 import { createAuditChannel } from '../backend/audit-channel';
+import type { WalletChoice } from '../backend/wallet';
+import { Button, Modal } from '../components/ui';
 import type { AuditChannel, AuditPackage, Session } from '../backend/types';
 import { config } from '../config';
 
@@ -18,7 +20,8 @@ type AppState = {
   readonly audits: AuditChannel;
   readonly session: Session | undefined;
   readonly connecting: boolean;
-  connect(): Promise<void>;
+  /** Connects a wallet; asks which one when several are installed. */
+  connect(walletKey?: string): Promise<void>;
 };
 
 const AppContext = createContext<AppState | null>(null);
@@ -27,6 +30,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const toast = useToast();
   const [session, setSession] = useState<Session>();
   const [connecting, setConnecting] = useState(false);
+  const [choices, setChoices] = useState<readonly WalletChoice[]>();
   const { network, contractAddress } = config;
 
   const registry$ = useMemo(
@@ -35,11 +39,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   );
   const audits = useMemo(() => createAuditChannel(`carbonseal:audits:${contractAddress}`), [contractAddress]);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (walletKey?: string) => {
+    setChoices(undefined);
     setConnecting(true);
     try {
-      const { connectSession } = await import('../backend/wallet');
-      setSession(await connectSession(network.id, contractAddress));
+      const { connectSession, listWallets } = await import('../backend/wallet');
+      if (walletKey === undefined) {
+        const wallets = await listWallets();
+        if (wallets.length > 1) {
+          setChoices(wallets);
+          return;
+        }
+      }
+      setSession(await connectSession(network.id, contractAddress, walletKey));
       toast({ tone: 'success', title: 'Wallet connected', body: `Joined the ${network.label} registry.` });
     } catch (error) {
       toast({ tone: 'error', title: 'Could not connect wallet', body: errorMessage(error) });
@@ -52,7 +64,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     () => ({ network, contractAddress, registry$, audits, session, connecting, connect }),
     [network, contractAddress, registry$, audits, session, connecting, connect],
   );
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      {choices && (
+        <Modal title="Choose a wallet" subtitle="Several Midnight wallets are installed." onClose={() => setChoices(undefined)}>
+          <div className="grid" style={{ gap: 8 }}>
+            {choices.map((w) => (
+              <Button key={w.key} size="lg" onClick={() => void connect(w.key)} style={{ justifyContent: 'flex-start' }}>
+                {w.icon && <img src={w.icon} alt="" width={20} height={20} style={{ borderRadius: 5 }} />}
+                {w.name}
+              </Button>
+            ))}
+          </div>
+        </Modal>
+      )}
+    </AppContext.Provider>
+  );
 };
 
 export const useApp = (): AppState => {

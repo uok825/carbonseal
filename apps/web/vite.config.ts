@@ -17,6 +17,9 @@ export default defineConfig({
     include: ['@midnight-ntwrk/compact-runtime'],
     exclude: ['@midnight-ntwrk/onchain-runtime-v3'],
   },
+  // The dev wallet bridge (apps/cli/src/bridge.ts), reachable at /bridge on this origin.
+  server: { proxy: { '/bridge': { target: 'http://127.0.0.1:6301', rewrite: (p) => p.replace(/^\/bridge/, '') } } },
+  preview: { proxy: { '/bridge': { target: 'http://127.0.0.1:6301', rewrite: (p) => p.replace(/^\/bridge/, '') } } },
   resolve: {
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.wasm'],
   },

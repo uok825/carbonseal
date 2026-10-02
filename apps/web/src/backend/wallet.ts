@@ -35,23 +35,32 @@ import type { Session } from './types';
 
 const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
 
-const findWallet = (): InitialAPI | undefined =>
-  Object.values(window.midnight ?? {}).find(
-    (wallet) =>
-      !!wallet &&
-      typeof wallet === 'object' &&
-      typeof wallet.apiVersion === 'string' &&
-      semver.satisfies(wallet.apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
+export type WalletChoice = { readonly key: string; readonly name: string; readonly icon: string };
+
+const compatibleWallets = (): [string, InitialAPI][] =>
+  Object.entries(window.midnight ?? {}).filter(
+    (entry): entry is [string, InitialAPI] =>
+      !!entry[1] &&
+      typeof entry[1] === 'object' &&
+      typeof entry[1].apiVersion === 'string' &&
+      semver.satisfies(entry[1].apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
   );
 
-const connectWallet = async (networkId: string): Promise<ConnectedAPI> => {
-  // Wallet extensions inject themselves shortly after page load.
+/** Midnight wallets available in this browser. Extensions inject themselves shortly after load. */
+export const listWallets = async (): Promise<WalletChoice[]> => {
   for (let attempt = 0; attempt < 20; attempt++) {
-    const wallet = findWallet();
-    if (wallet) return wallet.connect(networkId);
+    const found = compatibleWallets();
+    if (found.length > 0) return found.map(([key, w]) => ({ key, name: w.name, icon: w.icon }));
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error('No Midnight wallet found. Install Lace or 1AM and enable Midnight.');
+  return [];
+};
+
+const connectWallet = async (networkId: string, walletKey?: string): Promise<ConnectedAPI> => {
+  const wallets = compatibleWallets();
+  const wallet = (walletKey ? wallets.find(([key]) => key === walletKey) : wallets[0])?.[1];
+  if (!wallet) throw new Error('No Midnight wallet found. Install Lace or 1AM and enable Midnight.');
+  return wallet.connect(networkId);
 };
 
 const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProviders> => {
@@ -98,8 +107,12 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
  * proof server the wallet is configured with. The contract decides which role
  * this wallet's CarbonSeal key may play.
  */
-export const connectSession = async (networkId: string, contractAddress: string): Promise<Session> => {
-  const wallet = await connectWallet(networkId);
+export const connectSession = async (
+  networkId: string,
+  contractAddress: string,
+  walletKey?: string,
+): Promise<Session> => {
+  const wallet = await connectWallet(networkId, walletKey);
   const providers = await createProviders(wallet);
   const client = await CarbonSealNetworkClient.join(providers, contractAddress);
   return { client, publicKey: await client.publicKey() };
