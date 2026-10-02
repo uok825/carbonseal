@@ -5,8 +5,8 @@
 CarbonSeal is a Midnight dApp for exporters affected by the EU Carbon Border Adjustment Mechanism (CBAM). A producer can show an EU buyer that a shipment's embedded emissions are below the buyer's threshold. An accredited verifier backs the claim. The producer never hands over production volumes, energy mix or installation data.
 
 > **Status:** prototype built for the Midnight Buildathon (Wave 2).
-> - The contract has been deployed to a local Midnight network, and every circuit has run there with real zero-knowledge proofs. See [On-chain run](#on-chain-run).
-> - Not yet done: deploying to preprod, and testing the web app's wallet mode with a real wallet. See [Roadmap](#roadmap).
+> - **Live on preprod:** [`b95e3117…6d1ac4b7`](#on-chain-runs). Every circuit has run there and on a local network with real zero-knowledge proofs.
+> - Not yet done: testing the web app's wallet mode with a real wallet. See [Roadmap](#roadmap).
 
 ## Why this needs privacy
 
@@ -144,29 +144,62 @@ The scenario does the following:
   - a privacy test asserting that no private figure, installation id or salt appears in public state.
 - **`packages/api` (10 tests).** They cover encoding, CBAM helpers, the full attest → certify flow through `LocalRegistry`, and private-state persistence, including the case where a dependency has installed `BigInt.prototype.toJSON`.
 
-## On-chain run
+## On-chain runs
+
+### Preprod
+
+| | |
+|---|---|
+| Contract | `b95e3117ac4e482daa0c445a9c5a437b42b6d960bac67850695cc5ab6d1ac4b7` |
+| Record | [`apps/cli/deployments/preprod.json`](apps/cli/deployments/preprod.json): every tx id and block |
+| Run | 2 Oct 2026, blocks 2,809,240 – 2,809,265, proof server 8.1.0 |
+
+The run went as follows:
+- every circuit was included in about 21–33 s;
+- the two invalid certifications were rejected before any proof was generated;
+- the state read back from the indexer holds 1 verifier, 1 active and 1 revoked attestation, and 1 certificate.
+
+Inspect it yourself with `npx tsx apps/cli/src/inspect.ts preprod <address>`.
+
+To repeat the run, set up a fee wallet first:
+1. Run `npm run wallet:preprod -w @carbonseal/cli` to get an address, and fund it from the faucet.
+2. Run `npm run scenario:preprod`.
+
+The first wallet sync replays preprod's DUST history, about 1.6M events. On a 2-vCPU machine that took about three hours. The synced state is then cached in `apps/cli/.state/`, and later runs start in minutes.
+
+### Local devnet
 
 This is the latest `npm run scenario:local` run, recorded in [`apps/cli/deployments/local.json`](apps/cli/deployments/local.json). It used the local devnet, proof server 8.1.0 and a 2-vCPU machine.
 
 | Step | Result | Time |
 |---|---|---|
-| Deploy registry | contract `ae1dfcad…3d7451` | 17.8 s |
-| `addVerifier` ×2, `removeVerifier` | blocks 130, 134, 138 | ~24 s each |
-| `attest` | block 142 | 24 s |
-| `certify` (2,500 t at ≤ 1,900 kg/t) | block 146 | 24.1 s |
+| Deploy registry | contract `77132eff…922378` | 20.7 s |
+| `addVerifier` ×2, `removeVerifier` | blocks 2227, 2231, 2235 | ~24 s each |
+| `attest` | block 2239 | 24 s |
+| `certify` (2,500 t at ≤ 1,900 kg/t) | block 2243 | 24 s |
 | `certify` beyond verified production | rejected: *Shipment exceeds verified production* | before proving |
 | `certify` below the real intensity | rejected: *Emission intensity exceeds threshold* | before proving |
-| `attest` second report, then `revoke` | blocks 150, 154 | 24 s each |
+| `attest` second report, then `revoke` | blocks 2247, 2251 | ~24 s each |
 
 The indexed state afterwards held 1 verifier, 2 attestations (one revoked) and 1 certificate.
 
 During the run, the machine never had less than 4.3 GB of free RAM, and the proof server peaked at about 310 MB.
 
+### SDK issues found along the way
+
+| Symptom | Cause | Fix in this repo |
+|---|---|---|
+| `expected instance of StateValue` on the first call | compact-runtime pulled in `onchain-runtime-v3` 3.1.1 next to midnight-js' 3.0.0; the two WASM copies reject each other's objects | root `overrides` pins 3.0.0 |
+| `certify` witness type error | a dependency installs `BigInt.prototype.toJSON`, so bigints were stored as strings | private-state codec tags bigints itself |
+| Node rejects a tx with `1010: Custom error 117` (NotNormalized) | when fee prices fall to zero, `wallet-sdk-dust-wallet` 4.2.0 still adds a fee intent, but with no DUST spends; a fee-less tx can also be dropped later | the CLI wallet adds a 0.01 DUST fee overhead (`apps/cli/src/wallet.ts`) |
+| Preprod wallet sync times out | testkit `start()` waits 90 s; a cold DUST sync takes hours | own sync loop with checkpoints and an 8 h limit |
+
+Set `CARBONSEAL_DEBUG_TX=1` to dump every balanced transaction to `apps/cli/.state/tx-dumps/`. This dump is how the error-117 cause was found.
+
 ## Roadmap
 
-- **Wave 2 (now):** contract, simulator tests, end-to-end demo UI, network client, local-devnet run with real proofs. Still to do: preprod deployment and testing the wallet UI with a real wallet.
+- **Wave 2 (now):** contract, simulator tests, end-to-end demo UI, network client, and runs with real proofs on a local devnet and on preprod. Still to do: test the wallet UI with a real wallet, and remove the demo data.
 - **Wave 3:**
-  - deploy to preprod and record the address here;
   - Playwright e2e against a local devnet (`midnight-local-dev`);
   - selective disclosure of the exact intensity to a named buyer;
   - proof of carbon price paid under the Turkish ETS (deductible from CBAM);

@@ -26,6 +26,16 @@ import * as Rx from 'rxjs';
 
 import { cliRoot } from './config.js';
 
+/**
+ * Paid on top of the computed fee, in SPECK (1 DUST = 10^15 SPECK): 0.01 DUST.
+ * Midnight's fee prices fall when the network is quiet, and on preprod the
+ * computed fee can reach zero. wallet-sdk-dust-wallet 4.2.0 then adds a fee
+ * intent with no DUST spends, which the node rejects as "not normalized"
+ * (1010, custom error 117), and a fee-less transaction is dropped if prices
+ * rise before it is included. A small overhead always buys a real DUST spend.
+ */
+const FEE_OVERHEAD = 10_000_000_000_000n;
+
 const isComplete = (progress: unknown): boolean => {
   const fn = (progress as { isStrictlyComplete?: () => boolean } | undefined)?.isStrictlyComplete;
   return typeof fn === 'function' && fn.call(progress);
@@ -59,7 +69,7 @@ const buildWallet = async (logger: Logger, env: EnvironmentConfiguration, seed: 
   };
   const dustConfig = {
     ...config,
-    costParameters: { ledgerParams: LedgerParameters.initialParameters(), additionalFeeOverhead: 0n, feeBlocksMargin: 5 },
+    costParameters: { ledgerParams: LedgerParameters.initialParameters(), additionalFeeOverhead: FEE_OVERHEAD, feeBlocksMargin: 5 },
   };
 
   const cached = { shielded: cache.read('shielded'), unshielded: cache.read('unshielded'), dust: cache.read('dust') };
@@ -193,3 +203,4 @@ export const withDustRetry = async <T>(logger: Logger, attempt: () => Promise<T>
     }
   }
 };
+

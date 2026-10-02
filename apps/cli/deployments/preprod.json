@@ -1,0 +1,93 @@
+{
+  "network": "preprod",
+  "contractAddress": "b95e3117ac4e482daa0c445a9c5a437b42b6d960bac67850695cc5ab6d1ac4b7",
+  "deployedAt": "2026-10-02T20:36:50.732Z",
+  "compiler": "0.31.1",
+  "proofServer": "http://127.0.0.1:6300",
+  "participants": {
+    "authority": "0292f33394d38f7c91fa322a98c672fcc02cf8db64ff2857989fb4a1278599d7",
+    "verifier": "4daf86e7b73f7bc9360366e78140f739bac812c80ccb5bf29a609c8b4477843f",
+    "operator": "822db56a21425243feca19f1552d66e0ecdbaf203fda7a68193c9bfb8f0401f6"
+  },
+  "sampleShipment": "CLI-MURFA8GB",
+  "steps": [
+    {
+      "step": "deploy",
+      "seconds": 22.1,
+      "receipt": null
+    },
+    {
+      "step": "addVerifier",
+      "seconds": 22.7,
+      "receipt": {
+        "txId": "00cbf9ba8c817c682702aa613f01826dd9152e846cb2a7dff5c95dac7ed2c802c8",
+        "txHash": "9601ff6aa413449f218f5826d1d1e1d233cf36b09a81574ce93d4b29b9486b1b",
+        "blockHeight": 2809240
+      }
+    },
+    {
+      "step": "addVerifier (second)",
+      "seconds": 32.9,
+      "receipt": {
+        "txId": "0025044fbb80429d431af3ac1569ca11616c914fff31ace107f88b0a1a4f8cd532",
+        "txHash": "3d2a3ff40223ef9f13a03a8add1452045232f676027af05ed58d9ab503496524",
+        "blockHeight": 2809244
+      }
+    },
+    {
+      "step": "removeVerifier",
+      "seconds": 21.3,
+      "receipt": {
+        "txId": "0009bdef9a3a57a3f568bddc8f468ed14ff2664e71c5e9c5cf00710619ef9d8e07",
+        "txHash": "5c84db5b36a9ca176de9a642fee0b0924d5be12f4b5a2321cf9e073810bcffe3",
+        "blockHeight": 2809249
+      }
+    },
+    {
+      "step": "attest",
+      "seconds": 24.4,
+      "receipt": {
+        "txId": "00a8ce888390b61eb930f497abf158da54d749899fb08eb1aa15d0d55be9d7362b",
+        "txHash": "dea6c87133d003631c84e94381a5acff0ed705521b079c1126dd42480c21fa9d",
+        "blockHeight": 2809253
+      }
+    },
+    {
+      "step": "certify",
+      "seconds": 24.4,
+      "receipt": {
+        "txId": "005c3c141bb908170b78c3143d8b1f3ce26c233783b2fa3badf31a9ed5a7da6749",
+        "txHash": "ed32e7d1d70e20747554da5b596c97df3166fd379dab6eefefb2f608cc084867",
+        "blockHeight": 2809257
+      }
+    },
+    {
+      "step": "certify beyond verified production",
+      "seconds": 0.1,
+      "receipt": "rejected"
+    },
+    {
+      "step": "certify below real intensity",
+      "seconds": 0.1,
+      "receipt": "rejected"
+    },
+    {
+      "step": "attest (second report)",
+      "seconds": 23,
+      "receipt": {
+        "txId": "00b1939a53f6a049b3e6f44e9210e7f9b3950f1f7ec10cae2ddbfcecfabee623d8",
+        "txHash": "8d0ed5b4aa7d1a4ce0aa4a4def75019e90763f2116a60bda379c1e4719aa9815",
+        "blockHeight": 2809261
+      }
+    },
+    {
+      "step": "revoke",
+      "seconds": 24.3,
+      "receipt": {
+        "txId": "0035955932ddbdd9f3de99ef6c5a6735793f61c48a84fe14cd785016d7407c6f70",
+        "txHash": "46ad8ab63f0c7e0c883f1518ce66c05ac8fbc99dfa6bfb89bbb342c166965949",
+        "blockHeight": 2809265
+      }
+    }
+  ]
+}
