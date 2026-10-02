@@ -7,7 +7,9 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "scenario:local": "tsx src/scenario.ts local",
-    "scenario:preprod": "tsx src/scenario.ts preprod"
+    "scenario:preprod": "tsx src/scenario.ts preprod",
+    "wallet:preprod": "tsx src/wallet-address.ts preprod",
+    "wallet:local": "tsx src/wallet-address.ts local"
   },
   "devDependencies": {
     "@types/ws": "^8.18.2",
