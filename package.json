@@ -17,8 +17,8 @@
     "build": "npm run build -w @carbonseal/contract && npm run build -w @carbonseal/api && npm run build -w @carbonseal/web",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test -w @carbonseal/contract && npm run test -w @carbonseal/api",
-    "dev": "npm run dev -w @carbonseal/web",
-    "ci": "npm run compact && npm run typecheck && npm run test && npm run build"
+    "dev": "npm run build -w @carbonseal/contract && npm run build -w @carbonseal/api && npm run dev -w @carbonseal/web",
+    "ci": "npm run compact && npm run build && npm run typecheck && npm run test"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
