@@ -1,0 +1,28 @@
+{
+  "name": "carbonseal",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/contract",
+    "packages/api",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "compact": "npm run compact -w @carbonseal/contract",
+    "build": "npm run build -w @carbonseal/contract && npm run build -w @carbonseal/api && npm run build -w @carbonseal/web",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test -w @carbonseal/contract && npm run test -w @carbonseal/api",
+    "dev": "npm run dev -w @carbonseal/web",
+    "ci": "npm run compact && npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

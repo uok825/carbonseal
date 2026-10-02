@@ -1,0 +1,31 @@
+{
+  "name": "@carbonseal/contract",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./simulator": {
+      "types": "./dist/simulator.d.ts",
+      "import": "./dist/simulator.js",
+      "default": "./dist/simulator.js"
+    }
+  },
+  "scripts": {
+    "compact": "compact compile src/carbonseal.compact src/managed/carbonseal",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && cp -R src/managed dist/managed && cp src/carbonseal.compact dist/",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/midnight-js-protocol": "4.1.1"
+  }
+}

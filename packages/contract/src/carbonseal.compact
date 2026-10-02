@@ -1,0 +1,141 @@
+// CarbonSeal: prove that steel shipped to the EU was produced below a CBAM
+// emission-intensity threshold, without revealing installation data.
+//
+// SPDX-License-Identifier: Apache-2.0
+
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Emission report for one installation, product and reporting period.
+// It never leaves the operator's machine; only its commitment is public.
+export struct InstallationReport {
+  installationId: Bytes<32>,
+  productCode: Uint<32>,          // EU Combined Nomenclature code, e.g. 72083900
+  period: Uint<16>,               // reporting year
+  directEmissionsKg: Uint<64>,    // scope 1, kg CO2e
+  indirectEmissionsKg: Uint<64>,  // electricity, kg CO2e
+  productionTonnes: Uint<32>,
+  salt: Bytes<32>
+}
+
+// An accredited verifier's statement that a report commitment was audited.
+export struct Attestation {
+  verifier: Bytes<32>,
+  operator: Bytes<32>,
+  productCode: Uint<32>,
+  period: Uint<16>,
+  revoked: Boolean
+}
+
+// What a buyer sees for a certified shipment.
+export struct Certificate {
+  reportCommitment: Bytes<32>,
+  productCode: Uint<32>,
+  period: Uint<16>,
+  thresholdKgPerTonne: Uint<32>,
+  tonnes: Uint<32>,
+  buyer: Bytes<32>
+}
+
+export ledger authority: Bytes<32>;
+export ledger verifiers: Set<Bytes<32>>;
+export ledger attestations: Map<Bytes<32>, Attestation>;
+// Tonnes already certified against each report; never exceeds production.
+export ledger claimedTonnes: Map<Bytes<32>, Uint<32>>;
+export ledger certificates: Map<Bytes<32>, Certificate>;
+export ledger certificateCount: Counter;
+
+witness localSecretKey(): Bytes<32>;
+witness installationReport(commitment: Bytes<32>): InstallationReport;
+
+constructor(authorityPk: Bytes<32>) {
+  authority = disclose(authorityPk);
+}
+
+export circuit publicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "carbonseal:pk:"), sk]);
+}
+
+export circuit reportCommitment(report: InstallationReport): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>(
+    [pad(32, "carbonseal:report:"), persistentHash<InstallationReport>(report)]);
+}
+
+export circuit addVerifier(verifierPk: Bytes<32>): [] {
+  assert(authority == publicKey(localSecretKey()), "Only the registry authority can accredit verifiers");
+  verifiers.insert(disclose(verifierPk));
+}
+
+export circuit removeVerifier(verifierPk: Bytes<32>): [] {
+  assert(authority == publicKey(localSecretKey()), "Only the registry authority can remove verifiers");
+  verifiers.remove(disclose(verifierPk));
+}
+
+export circuit attest(commitment: Bytes<32>, operatorPk: Bytes<32>, productCode: Uint<32>, period: Uint<16>): [] {
+  const verifier = disclose(publicKey(localSecretKey()));
+  const c = disclose(commitment);
+  assert(verifiers.member(verifier), "Caller is not an accredited verifier");
+  assert(!attestations.member(c), "Report already attested");
+  attestations.insert(c, Attestation {
+    verifier: verifier,
+    operator: disclose(operatorPk),
+    productCode: disclose(productCode),
+    period: disclose(period),
+    revoked: false
+  });
+  claimedTonnes.insert(c, 0);
+}
+
+export circuit revoke(commitment: Bytes<32>): [] {
+  const c = disclose(commitment);
+  assert(attestations.member(c), "Unknown report");
+  const a = attestations.lookup(c);
+  assert(a.verifier == publicKey(localSecretKey()), "Only the attesting verifier can revoke");
+  attestations.insert(c, Attestation {
+    verifier: a.verifier,
+    operator: a.operator,
+    productCode: a.productCode,
+    period: a.period,
+    revoked: true
+  });
+}
+
+export circuit certify(
+  shipmentId: Bytes<32>,
+  commitment: Bytes<32>,
+  thresholdKgPerTonne: Uint<32>,
+  tonnes: Uint<32>,
+  buyer: Bytes<32>
+): [] {
+  const id = disclose(shipmentId);
+  const c = disclose(commitment);
+  const threshold = disclose(thresholdKgPerTonne);
+  const shipped = disclose(tonnes);
+
+  assert(!certificates.member(id), "Shipment already certified");
+  assert(attestations.member(c), "Report has not been attested");
+  const a = attestations.lookup(c);
+  assert(!a.revoked, "Attestation has been revoked");
+  assert(a.operator == publicKey(localSecretKey()), "Only the reporting operator can certify shipments");
+  assert(shipped > 0, "Shipment must be at least one tonne");
+
+  // The report stays private: only the two comparison results are disclosed.
+  const report = installationReport(c);
+  assert(reportCommitment(report) == c, "Private report does not match the attested commitment");
+  const totalKg = report.directEmissionsKg + report.indirectEmissionsKg;
+  assert(disclose(totalKg <= threshold * report.productionTonnes), "Emission intensity exceeds threshold");
+  const claimed = claimedTonnes.lookup(c) + shipped;
+  assert(disclose(claimed <= report.productionTonnes), "Shipment exceeds verified production");
+
+  claimedTonnes.insert(c, claimed as Uint<32>);
+  certificates.insert(id, Certificate {
+    reportCommitment: c,
+    productCode: a.productCode,
+    period: a.period,
+    thresholdKgPerTonne: threshold,
+    tonnes: shipped,
+    buyer: disclose(buyer)
+  });
+  certificateCount.increment(1);
+}
