@@ -131,7 +131,8 @@ export const openWallet = async (logger: Logger, env: EnvironmentConfiguration, 
       Rx.filter(
         (s) => isComplete(s.shielded.state.progress) && isComplete(s.unshielded.progress) && isComplete(s.dust.state.progress),
       ),
-      Rx.timeout({ first: 3 * 3_600_000, with: () => Rx.throwError(() => new Error('Wallet did not sync within 3 hours')) }),
+      // preprod held ~1.6M DUST events in Oct 2026: about three hours from scratch on a 2-vCPU machine.
+      Rx.timeout({ first: 8 * 3_600_000, with: () => Rx.throwError(() => new Error('Wallet did not sync within 8 hours')) }),
     ),
   );
   await save();
