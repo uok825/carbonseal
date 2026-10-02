@@ -4,7 +4,7 @@ import type { InstallationReport } from '@carbonseal/contract';
 import { CarbonSealSimulator } from '@carbonseal/contract/simulator';
 import { BehaviorSubject, type Observable } from 'rxjs';
 
-import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport } from './client.js';
+import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport, TxReceipt } from './client.js';
 import { fromHex, labelToBytes, toHex } from './encoding.js';
 import { type RegistrySnapshot, snapshotFromLedger } from './registry.js';
 
@@ -37,11 +37,11 @@ export class LocalRegistry {
   clientFor(id: string): CarbonSealClient {
     this.#sim.privateStateOf(id);
     const sim = this.#sim;
-    const commit = (action: () => void): Promise<void> => {
+    const commit = (action: () => void): Promise<TxReceipt> => {
       try {
         action();
         this.#state.next(snapshotFromLedger(sim.ledger()));
-        return Promise.resolve();
+        return Promise.resolve(null);
       } catch (error) {
         return Promise.reject(error instanceof Error ? error : new Error(String(error)));
       }

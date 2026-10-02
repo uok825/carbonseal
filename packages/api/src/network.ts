@@ -12,7 +12,7 @@ import {
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { type Observable, map, shareReplay } from 'rxjs';
 
-import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport } from './client.js';
+import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport, TxReceipt } from './client.js';
 import {
   type CarbonSealContract,
   type CarbonSealProviders,
@@ -21,6 +21,12 @@ import {
 } from './common-types.js';
 import { fromHex, labelToBytes, randomBytes, toHex } from './encoding.js';
 import { type RegistrySnapshot, snapshotFromLedger } from './registry.js';
+
+const receipt = ({ public: tx }: { public: { txId: string; txHash: string; blockHeight: number } }): TxReceipt => ({
+  txId: tx.txId,
+  txHash: tx.txHash,
+  blockHeight: tx.blockHeight,
+});
 
 /**
  * A {@link CarbonSealClient} for a contract deployed on a Midnight network.
@@ -66,12 +72,15 @@ export class CarbonSealNetworkClient implements CarbonSealClient {
   static async join(providers: CarbonSealProviders, contractAddress: string): Promise<CarbonSealNetworkClient> {
     providers.privateStateProvider.setContractAddress(contractAddress);
     const existing = await providers.privateStateProvider.get(carbonSealPrivateStateKey);
+    const initial = existing ?? createPrivateState(randomBytes(32));
     const deployed = await findDeployedContract<CarbonSealContract>(providers, {
       contractAddress,
       compiledContract: CompiledCarbonSealContract,
       privateStateId: carbonSealPrivateStateKey,
-      initialPrivateState: existing ?? createPrivateState(randomBytes(32)),
+      initialPrivateState: initial,
     });
+    // A first-time participant's new identity must survive a restart.
+    if (existing === null) await providers.privateStateProvider.set(carbonSealPrivateStateKey, initial);
     return new CarbonSealNetworkClient(deployed, providers);
   }
 
@@ -91,35 +100,37 @@ export class CarbonSealNetworkClient implements CarbonSealClient {
     return toHex(commitment);
   }
 
-  async addVerifier(verifierPk: string): Promise<void> {
-    await this.deployed.callTx.addVerifier(fromHex(verifierPk));
+  async addVerifier(verifierPk: string): Promise<TxReceipt> {
+    return receipt(await this.deployed.callTx.addVerifier(fromHex(verifierPk)));
   }
 
-  async removeVerifier(verifierPk: string): Promise<void> {
-    await this.deployed.callTx.removeVerifier(fromHex(verifierPk));
+  async removeVerifier(verifierPk: string): Promise<TxReceipt> {
+    return receipt(await this.deployed.callTx.removeVerifier(fromHex(verifierPk)));
   }
 
-  async attest(input: AttestInput): Promise<void> {
-    await this.deployed.callTx.attest(
+  async attest(input: AttestInput): Promise<TxReceipt> {
+    const tx = await this.deployed.callTx.attest(
       fromHex(input.commitment),
       fromHex(input.operatorPk),
       input.productCode,
       input.period,
     );
+    return receipt(tx);
   }
 
-  async revoke(commitment: string): Promise<void> {
-    await this.deployed.callTx.revoke(fromHex(commitment));
+  async revoke(commitment: string): Promise<TxReceipt> {
+    return receipt(await this.deployed.callTx.revoke(fromHex(commitment)));
   }
 
-  async certify(input: CertifyInput): Promise<void> {
-    await this.deployed.callTx.certify(
+  async certify(input: CertifyInput): Promise<TxReceipt> {
+    const tx = await this.deployed.callTx.certify(
       labelToBytes(input.shipmentRef),
       fromHex(input.commitment),
       input.thresholdKgPerTonne,
       input.tonnes,
       labelToBytes(input.buyerRef),
     );
+    return receipt(tx);
   }
 
   private async privateState(): Promise<CarbonSealPrivateState> {

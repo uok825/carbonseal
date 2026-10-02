@@ -5,6 +5,13 @@ import type { Observable } from 'rxjs';
 
 import type { RegistrySnapshot } from './registry.js';
 
+/** Where a state change landed on chain; null when no chain is involved (local simulator). */
+export type TxReceipt = {
+  readonly txId: string;
+  readonly txHash: string;
+  readonly blockHeight: number;
+} | null;
+
 export type StoredReport = {
   readonly commitment: string;
   readonly report: InstallationReport;
@@ -43,9 +50,9 @@ export interface CarbonSealClient {
   reports(): Promise<readonly StoredReport[]>;
   storeReport(report: InstallationReport): Promise<string>;
 
-  addVerifier(verifierPk: string): Promise<void>;
-  removeVerifier(verifierPk: string): Promise<void>;
-  attest(input: AttestInput): Promise<void>;
-  revoke(commitment: string): Promise<void>;
-  certify(input: CertifyInput): Promise<void>;
+  addVerifier(verifierPk: string): Promise<TxReceipt>;
+  removeVerifier(verifierPk: string): Promise<TxReceipt>;
+  attest(input: AttestInput): Promise<TxReceipt>;
+  revoke(commitment: string): Promise<TxReceipt>;
+  certify(input: CertifyInput): Promise<TxReceipt>;
 }

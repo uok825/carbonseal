@@ -4,7 +4,9 @@
 
 CarbonSeal is a Midnight dApp for exporters affected by the EU Carbon Border Adjustment Mechanism (CBAM). A producer can show an EU buyer that a shipment's embedded emissions are below the buyer's threshold. An accredited verifier backs the claim. The producer never hands over production volumes, energy mix or installation data.
 
-> Status: prototype built for the Midnight Buildathon (Wave 2). The contract, its tests and the web app compile and run. The web app's network mode is wired to midnight-js but has **not yet been exercised against preprod**; see [Roadmap](#roadmap).
+> **Status:** prototype built for the Midnight Buildathon (Wave 2).
+> - The contract has been deployed to a local Midnight network, and every circuit has run there with real zero-knowledge proofs. See [On-chain run](#on-chain-run).
+> - Not yet done: deploying to preprod, and testing the web app's wallet mode with a real wallet. See [Roadmap](#roadmap).
 
 ## Why this needs privacy
 
@@ -72,6 +74,8 @@ packages/contract   Compact contract, witnesses, in-process simulator, contract 
 packages/api        CarbonSealClient interface; LocalRegistry (simulator) and
                     CarbonSealNetworkClient (midnight-js) implementations; CBAM helpers
 apps/web            React app: producer, verifier, buyer and registry workspaces
+apps/cli            Deploys a registry and drives every circuit on a real network
+infra/devnet.yml    Local Midnight node, indexer and proof server (from midnight-local-dev)
 docs/               Privacy boundary and design notes
 ```
 
@@ -103,6 +107,22 @@ A good walkthrough:
 3. **Buyer**: look up the shipment reference.
 4. **Registry**: confirm that no emission or production figure appears anywhere.
 
+### Local Midnight network
+
+Run the real contract against a local chain with real proofs:
+
+```bash
+npm run devnet:up        # node :9944, indexer :8088, proof server :6300 (Docker)
+npm run scenario:local   # deploy + every circuit; writes apps/cli/deployments/local.json
+npm run devnet:down
+```
+
+The scenario does the following:
+- pays fees from the devnet's genesis wallet and registers its NIGHT for DUST;
+- gives the authority, verifier and operator separate CarbonSeal identities, with private state in `apps/cli/.state/`;
+- checks that two invalid certifications are rejected;
+- reads the result back through the indexer.
+
 ### Preprod
 
 1. Start a proof server: `docker run -p 6300:6300 midnightntwrk/proof-server:8.1.0 midnight-proof-server -v`.
@@ -122,11 +142,29 @@ A good walkthrough:
   - another party certifying;
   - a report altered after attestation;
   - a privacy test asserting that no private figure, installation id or salt appears in public state.
-- **`packages/api` (7 tests).** They cover encoding, CBAM helpers and the full attest → certify flow through `LocalRegistry`.
+- **`packages/api` (10 tests).** They cover encoding, CBAM helpers, the full attest → certify flow through `LocalRegistry`, and private-state persistence, including the case where a dependency has installed `BigInt.prototype.toJSON`.
+
+## On-chain run
+
+This is the latest `npm run scenario:local` run, recorded in [`apps/cli/deployments/local.json`](apps/cli/deployments/local.json). It used the local devnet, proof server 8.1.0 and a 2-vCPU machine.
+
+| Step | Result | Time |
+|---|---|---|
+| Deploy registry | contract `ae1dfcad…3d7451` | 17.8 s |
+| `addVerifier` ×2, `removeVerifier` | blocks 130, 134, 138 | ~24 s each |
+| `attest` | block 142 | 24 s |
+| `certify` (2,500 t at ≤ 1,900 kg/t) | block 146 | 24.1 s |
+| `certify` beyond verified production | rejected: *Shipment exceeds verified production* | before proving |
+| `certify` below the real intensity | rejected: *Emission intensity exceeds threshold* | before proving |
+| `attest` second report, then `revoke` | blocks 150, 154 | 24 s each |
+
+The indexed state afterwards held 1 verifier, 2 attestations (one revoked) and 1 certificate.
+
+During the run, the machine never had less than 4.3 GB of free RAM, and the proof server peaked at about 310 MB.
 
 ## Roadmap
 
-- **Wave 2 (now):** contract, simulator tests, end-to-end demo UI, network client.
+- **Wave 2 (now):** contract, simulator tests, end-to-end demo UI, network client, local-devnet run with real proofs. Still to do: preprod deployment and testing the wallet UI with a real wallet.
 - **Wave 3:**
   - deploy to preprod and record the address here;
   - Playwright e2e against a local devnet (`midnight-local-dev`);

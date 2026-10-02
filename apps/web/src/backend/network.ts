@@ -8,6 +8,8 @@ import {
   CarbonSealNetworkClient,
   type CarbonSealPrivateStateId,
   type CarbonSealProviders,
+  keyValuePrivateStateProvider,
+  webStorageStore,
 } from '@carbonseal/api';
 import type { CarbonSealPrivateState } from '@carbonseal/contract';
 import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
@@ -27,7 +29,6 @@ import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import semver from 'semver';
 
 import { createAuditChannel } from './audit-channel';
-import { browserPrivateStateProvider } from './browser-private-state';
 import type { Backend, Participant, Role } from './types';
 
 const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
@@ -59,7 +60,9 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
   const zkConfigProvider = new FetchZkConfigProvider<CarbonSealCircuitKeys>(window.location.origin, fetch.bind(window));
   const addresses = await wallet.getShieldedAddresses();
   return {
-    privateStateProvider: browserPrivateStateProvider<CarbonSealPrivateStateId, CarbonSealPrivateState>(),
+    privateStateProvider: keyValuePrivateStateProvider<CarbonSealPrivateStateId, CarbonSealPrivateState>(
+      webStorageStore(localStorage),
+    ),
     zkConfigProvider,
     proofProvider: httpClientProofProvider(config.proverServerUri, zkConfigProvider),
     publicDataProvider: indexerPublicDataProvider(config.indexerUri, config.indexerWsUri),

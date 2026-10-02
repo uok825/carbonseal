@@ -12,3 +12,6 @@ packages/contract/src/managed/
 # Staged by apps/web/scripts/stage-zk.mjs
 apps/web/public/keys/
 apps/web/public/zkir/
+
+# CLI participant keys and reports (unencrypted, dev only)
+apps/cli/.state/

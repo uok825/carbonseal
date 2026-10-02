@@ -7,7 +7,8 @@
   "workspaces": [
     "packages/contract",
     "packages/api",
-    "apps/web"
+    "apps/web",
+    "apps/cli"
   ],
   "engines": {
     "node": ">=22"
@@ -18,11 +19,18 @@
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test -w @carbonseal/contract && npm run test -w @carbonseal/api",
     "dev": "npm run build -w @carbonseal/contract && npm run build -w @carbonseal/api && npm run dev -w @carbonseal/web",
-    "ci": "npm run compact && npm run build && npm run typecheck && npm run test"
+    "ci": "npm run compact && npm run build && npm run typecheck && npm run test",
+    "devnet:up": "docker compose -f infra/devnet.yml up -d --wait",
+    "devnet:down": "docker compose -f infra/devnet.yml down",
+    "scenario:local": "npm run scenario:local -w @carbonseal/cli",
+    "scenario:preprod": "npm run scenario:preprod -w @carbonseal/cli"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
   }
 }

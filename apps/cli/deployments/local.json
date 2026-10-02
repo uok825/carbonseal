@@ -1,0 +1,93 @@
+{
+  "network": "undeployed",
+  "contractAddress": "ae1dfcaddcb10893c10c9cc7507aa7d49462b54df87167ce411f386b8e3d7451",
+  "deployedAt": "2026-10-02T15:35:38.474Z",
+  "compiler": "0.31.1",
+  "proofServer": "http://127.0.0.1:6300",
+  "participants": {
+    "authority": "debcef2a1aa3450f7cd56c0af7e346150bf6aeba76a9c8aa1fa216b5d374f503",
+    "verifier": "f0c449116f8115a24ecedb6eea88c1b1fecb20bd9efb934bb665c05264efc402",
+    "operator": "650d00dade8736c99cb1d824a1fc4010a29bb99f10125cca56e7be5724f2707f"
+  },
+  "sampleShipment": "CLI-MUR4IVPV",
+  "steps": [
+    {
+      "step": "deploy",
+      "seconds": 17.8,
+      "receipt": null
+    },
+    {
+      "step": "addVerifier",
+      "seconds": 23.9,
+      "receipt": {
+        "txId": "00c759987065dcab3ddf051c87fa7a077aa6bd5a31136c7e798ed97a29810db380",
+        "txHash": "0303a54c6635be8e780426b3398ca90bb2fa5f15951cac5c6da6f32dab7a27ab",
+        "blockHeight": 130
+      }
+    },
+    {
+      "step": "addVerifier (second)",
+      "seconds": 24,
+      "receipt": {
+        "txId": "004196e8dddb568c7cdaa8ac92029c280db9eeb9c9eba713c24433e91f1b674797",
+        "txHash": "ed58f982e0f7839a9c7ee1917a92f86012ec7179cb5af0113cab3edca6fa77d5",
+        "blockHeight": 134
+      }
+    },
+    {
+      "step": "removeVerifier",
+      "seconds": 24,
+      "receipt": {
+        "txId": "0031f0d41faa72cfb96415011ca98d95fc5c0563b1e8eb14c4bc78c6a581fb08e3",
+        "txHash": "5bde9e46af6ad6112c772d905a9e251fdc60cc1b7bcc45a35edc442a21838563",
+        "blockHeight": 138
+      }
+    },
+    {
+      "step": "attest",
+      "seconds": 24,
+      "receipt": {
+        "txId": "00dd8d71e806de3c1adbc1861b74d5eaa139fa7445657451daa6732a0ef21bbd6f",
+        "txHash": "f1b964ff1ba9c8555dff8a520b9553f85d3eb9af9020fb421d0485ee8894b2d6",
+        "blockHeight": 142
+      }
+    },
+    {
+      "step": "certify",
+      "seconds": 24.1,
+      "receipt": {
+        "txId": "00d32f31392eff6833a08e2a70f19e3f6658de1f4e142c5e832a6fdfb6d8e448dc",
+        "txHash": "17a73010b7ffc0f451afdc3c9b64f564eff488780d670e711abac488c0785ebe",
+        "blockHeight": 146
+      }
+    },
+    {
+      "step": "certify beyond verified production",
+      "seconds": 0,
+      "receipt": "rejected"
+    },
+    {
+      "step": "certify below real intensity",
+      "seconds": 0,
+      "receipt": "rejected"
+    },
+    {
+      "step": "attest (second report)",
+      "seconds": 24,
+      "receipt": {
+        "txId": "00a7daf7084c2a2b761314a4ec88fc5667ea8e817667c1d07d067a0dcb8a525e5c",
+        "txHash": "c0b75bc368aed119e07d0732f673814f10cc77c7e4de39bc064b42277e5e2099",
+        "blockHeight": 150
+      }
+    },
+    {
+      "step": "revoke",
+      "seconds": 24,
+      "receipt": {
+        "txId": "00ed995914151436f0d03525703f70cdbee306dae2acdbac1cba244662c64ab623",
+        "txHash": "9dc28955580c7110f7a15a73195ce136dd45caddaf6304df92ce09ddf9df37a0",
+        "blockHeight": 154
+      }
+    }
+  ]
+}
