@@ -6,7 +6,7 @@ CarbonSeal is a Midnight dApp for exporters affected by the EU Carbon Border Adj
 
 > **Status:** prototype built for the Midnight Buildathon (Wave 2).
 > - **Live on preprod:** [`b95e3117…6d1ac4b7`](#on-chain-runs). Every circuit has run there and on a local network with real zero-knowledge proofs.
-> - Not yet done: testing the web app's wallet mode with a real wallet. See [Roadmap](#roadmap).
+> - The web app's full flow (report → audit → attest → certify → buyer check) has run on preprod from a browser. That run used the [dev wallet bridge](#dev-wallet-bridge); Lace itself is still on its first sync.
 
 ## Why this needs privacy
 
@@ -116,6 +116,25 @@ How a producer, verifier and authority work together:
 4. **Verifier:** *Import package*. The console recomputes the commitment from the report before *Attest* is enabled.
 5. **Producer:** *Certify shipment*. The buyer can now verify it on the Buyer page.
 
+#### Dev wallet bridge
+
+A first wallet sync on preprod can take hours: Lace's first preprod sync is known to stall ([lace#2257](https://github.com/input-output-hk/lace/issues/2257)). While a wallet is still syncing, the app can use the CLI's already-synced wallet instead:
+
+```bash
+npm run bridge:preprod -w @carbonseal/cli          # serves the wallet on 127.0.0.1:6301
+VITE_WALLET_BRIDGE=1 npm run build -w @carbonseal/web && npx vite preview -c apps/web/vite.config.ts apps/web
+```
+
+How it works:
+- **Connect wallet** then offers **Server wallet (dev bridge)**.
+- Calls reach the bridge through the app's `/bridge` proxy.
+- Proofs come from the proof server on port 6300.
+- The bridge binds to localhost only; reach it through an SSH tunnel and never expose it.
+
+This is how the browser flow was verified on preprod on 2 Oct 2026:
+- attestation by a browser-held verifier key `537f7de4…`;
+- certificate `TEST-SHIP-01`, 100 t at ≤ 1,900 kg/t.
+
 Configuration lives in `apps/web/.env` (see `.env.example`):
 - `VITE_NETWORK_ID`: `preprod` (default), `preview` or `undeployed`.
 - `VITE_CONTRACT_ADDRESS`: defaults to the public preprod registry.
@@ -210,7 +229,7 @@ Set `CARBONSEAL_DEBUG_TX=1` to dump every balanced transaction to `apps/cli/.sta
   - contract and simulator tests;
   - runs with real proofs on a local devnet and on preprod;
   - a web app that reads the live registry without a wallet and acts on chain through Lace or 1AM;
-  - still to do: an end-to-end test of the wallet flow with a real browser wallet.
+  - the browser flow verified on preprod through the dev wallet bridge; still to do: repeat it with Lace once its first sync completes.
 - **Wave 3:**
   - Playwright e2e against a local devnet (`midnight-local-dev`);
   - selective disclosure of the exact intensity to a named buyer;
@@ -222,7 +241,7 @@ Set `CARBONSEAL_DEBUG_TX=1` to dump every balanced transaction to `apps/cli/.sta
 
 - The emission model is simplified: one product per report, and direct plus indirect emissions only. It does not yet model precursors or the full CBAM methodology.
 - The prototype stores private state unencrypted in `localStorage`.
-- The web app's wallet flow has not been exercised with a real Lace or 1AM wallet yet. The CLI has run every circuit on preprod; the browser read path has been tested against preprod.
+- The web app's on-chain flow has been verified on preprod through the dev wallet bridge, but not yet with Lace or 1AM directly.
 - Lace balances the web app's transactions itself. The CLI's fee-overhead fix for zero-fee transactions therefore does not apply there.
 - The buyer reference (EORI) is currently published as a label.
 - Each successful certification reveals a lower bound on production (the running total), by design.
