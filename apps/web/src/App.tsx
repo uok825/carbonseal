@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { ShieldCheck, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 
 import { Button } from './components/ui';
 import { useApp, useRoute } from './lib/app-state';
@@ -44,9 +44,6 @@ export const App = () => {
       <header className="topbar">
         <div className="topbar-inner">
           <a className="brand" href="#/">
-            <span className="brand-mark">
-              <ShieldCheck size={14} strokeWidth={2.4} />
-            </span>
             CarbonSeal
           </a>
           <nav className="nav">

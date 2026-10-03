@@ -1,7 +1,7 @@
 /* Single dark theme. Surfaces are separated by tone, not by borders. */
 :root {
-  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --bg: #08090a;
   --surface: #111214;
