@@ -58,7 +58,7 @@ A verifier can `revoke` an attestation; no further shipments can be certified ag
 - **Identity.** A participant's ledger identity is `persistentHash("carbonseal:pk:", secretKey)`. The secret key never leaves the device.
 - **Commitments.** `persistentHash("carbonseal:report:", persistentHash(report))`, where each report includes a 32-byte random salt.
 - **SDK.** [`packages/api`](packages/api) uses `@midnight-ntwrk/midnight-js-*` 4.1.1 for deploy/join, `callTx` and indexer subscriptions.
-- **Wallet.** [`apps/web/src/backend/network.ts`](apps/web/src/backend/network.ts) connects through the DApp Connector API v4 (Lace, 1AM) and proves through the wallet's configured proof server.
+- **Wallet.** [`apps/web/src/backend/wallet.ts`](apps/web/src/backend/wallet.ts) connects through the DApp Connector API v4 (Lace, 1AM) and proves through the wallet's configured proof server.
 
 Versions follow the official [support matrix](https://docs.midnight.network/relnotes/support-matrix):
 
