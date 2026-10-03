@@ -1,5 +1,7 @@
 # CarbonSeal
 
+![CarbonSeal: prove your steel is low-carbon, reveal nothing else](docs/brand/cover.jpg)
+
 **Prove your steel is low-carbon. Reveal nothing else.**
 
 CarbonSeal is a Midnight dApp for exporters affected by the EU Carbon Border Adjustment Mechanism (CBAM). A producer can show an EU buyer that a shipment's embedded emissions are below the buyer's threshold. An accredited verifier backs the claim. The producer never hands over production volumes, energy mix or installation data.
