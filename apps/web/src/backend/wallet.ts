@@ -63,6 +63,22 @@ const connectWallet = async (networkId: string, walletKey?: string): Promise<Con
   return wallet.connect(networkId);
 };
 
+/**
+ * Wallet errors are DApp Connector APIErrors whose message is often empty;
+ * the useful part is in `code` and `reason`. Re-throw them as plain Errors
+ * that say which step failed, and keep the original in the console.
+ */
+const walletStep = async <T>(step: string, call: () => Promise<T>): Promise<T> => {
+  try {
+    return await call();
+  } catch (error) {
+    console.error(`Wallet ${step} failed`, error);
+    const e = error as { code?: unknown; reason?: unknown; message?: unknown };
+    const detail = [e.code, e.reason, e.message].filter((x) => typeof x === 'string' && x !== '').join(': ');
+    throw new Error(`Wallet could not ${step}${detail ? `: ${detail}` : ''}`, { cause: error });
+  }
+};
+
 const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProviders> => {
   const config = await wallet.getConfiguration();
   if (!config.proverServerUri) {
@@ -81,7 +97,9 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
       getCoinPublicKey: () => addresses.shieldedCoinPublicKey,
       getEncryptionPublicKey: () => addresses.shieldedEncryptionPublicKey,
       balanceTx: async (tx: UnboundTransaction): Promise<FinalizedTransaction> => {
-        const balanced = await wallet.balanceUnsealedTransaction(toHex(tx.serialize()));
+        const balanced = await walletStep('balance the transaction', () =>
+          wallet.balanceUnsealedTransaction(toHex(tx.serialize())),
+        );
         return Transaction.deserialize<SignatureEnabled, Proof, Binding>(
           'signature',
           'proof',
@@ -92,7 +110,7 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
     },
     midnightProvider: {
       submitTx: async (tx: FinalizedTransaction): Promise<TransactionId> => {
-        await wallet.submitTransaction(toHex(tx.serialize()));
+        await walletStep('submit the transaction', () => wallet.submitTransaction(toHex(tx.serialize())));
         const [txId] = tx.identifiers();
         if (txId === undefined) throw new Error('Submitted transaction has no identifier');
         return txId;

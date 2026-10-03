@@ -168,7 +168,15 @@ export const useToast = () => useContext(ToastContext);
 
 /** Contract assertion messages arrive wrapped by the runtime; surface just the reason. */
 export const errorMessage = (error: unknown): string => {
-  const text = error instanceof Error ? error.message : String(error);
+  // midnight-js wraps the real failure; walk the cause chain to the most specific message.
+  const messages: string[] = [];
+  for (let e: unknown = error, depth = 0; e !== undefined && depth < 6; depth++) {
+    const text = e instanceof Error ? e.message : String(e);
+    if (text) messages.push(text);
+    e = e instanceof Error ? e.cause : undefined;
+  }
+  const specific = [...messages].reverse().find((m) => /failed assert|Custom error|Wallet could not/i.test(m));
+  const text = specific ?? messages[0] ?? 'Unknown error';
   const match = /failed assert: (.*)$/i.exec(text);
   return match?.[1] ?? text;
 };

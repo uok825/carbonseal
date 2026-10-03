@@ -11,7 +11,7 @@ import {
 } from '@carbonseal/contract';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import type { PublicDataProvider } from '@midnight-ntwrk/midnight-js-types';
-import { type Observable, map, shareReplay } from 'rxjs';
+import { type Observable, distinctUntilChanged, filter, from, interval, map, merge, shareReplay, switchMap } from 'rxjs';
 
 import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport, TxReceipt } from './client.js';
 import {
@@ -26,12 +26,29 @@ import { type RegistrySnapshot, snapshotFromLedger } from './registry.js';
 /**
  * The live public state of a registry, read from the indexer. Needs no wallet:
  * this is what buyers and auditors use to verify certificates.
+ *
+ * The indexer subscription can go quiet in a long-lived browser tab, so the
+ * state is also re-read every `pollMs`; identical states are emitted once.
  */
-export const watchRegistry = (publicData: PublicDataProvider, contractAddress: string): Observable<RegistrySnapshot> =>
-  publicData.contractStateObservable(contractAddress, { type: 'latest' }).pipe(
+export const watchRegistry = (
+  publicData: PublicDataProvider,
+  contractAddress: string,
+  pollMs = 15_000,
+): Observable<RegistrySnapshot> =>
+  merge(
+    publicData.contractStateObservable(contractAddress, { type: 'latest' }),
+    interval(pollMs).pipe(
+      switchMap(() => from(publicData.queryContractState(contractAddress))),
+      filter((state) => state !== null),
+    ),
+  ).pipe(
     map((state) => snapshotFromLedger(ledger(state.data))),
+    distinctUntilChanged((a, b) => fingerprint(a) === fingerprint(b)),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
+
+const fingerprint = (s: RegistrySnapshot): string =>
+  JSON.stringify(s, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v));
 
 const receipt = ({ public: tx }: { public: { txId: string; txHash: string; blockHeight: number } }): TxReceipt => ({
   txId: tx.txId,
