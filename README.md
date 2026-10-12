@@ -7,6 +7,7 @@
 CarbonSeal is a Midnight dApp for exporters affected by the EU Carbon Border Adjustment Mechanism (CBAM). A producer can show an EU buyer that a shipment's embedded emissions are below the buyer's threshold. An accredited verifier backs the claim. The producer never hands over production volumes, energy mix or installation data.
 
 > **Status:** prototype built for the Midnight Buildathon (Wave 2).
+> - **Live demo:** [carbonseal-dun.vercel.app](https://carbonseal-dun.vercel.app). Overview, Buyer and Registry work without a wallet; Producer and Verifier need Lace on preprod and a local proof server.
 > - **Live on preprod:** [`b95e3117…1ac4b7`](https://preprod.midnightexplorer.com/contracts/0xb95e3117ac4e482daa0c445a9c5a437b42b6d960bac67850695cc5ab6d1ac4b7), with [every transaction linked](#every-preprod-transaction). Every circuit has run there and on a local network with real zero-knowledge proofs.
 > - The web app's full flow (report → audit → attest → certify → buyer check) has run on preprod from a browser with **Lace**, and also through the [dev wallet bridge](#dev-wallet-bridge).
 
@@ -124,6 +125,15 @@ How a producer, verifier and authority work together:
 3. **Producer:** connect, create a report, then *Send for audit*. This copies an audit package (it contains the private report) to send to the verifier off-chain.
 4. **Verifier:** *Import package*. The console recomputes the commitment from the report before *Attest* is enabled.
 5. **Producer:** *Certify shipment*. The buyer can now verify it on the Buyer page.
+
+#### Hosted demo (Vercel)
+
+```bash
+node apps/web/scripts/vercel-bundle.mjs
+cd apps/web/.vercel-site && vercel deploy --prod
+```
+
+Vercel cannot proxy WebSockets, so this build polls the indexer over HTTP every 10 s. The edge function in `apps/web/deploy/vercel/api/indexer.js` forwards read-only queries to Blockfrost and adds the token from the project's `BLOCKFROST_PROJECT_ID` environment variable. The dev wallet bridge is not included.
 
 #### Dev wallet bridge
 
