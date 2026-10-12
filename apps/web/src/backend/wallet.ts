@@ -31,6 +31,7 @@ import {
 import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import semver from 'semver';
 
+import { config as appConfig } from '../config';
 import type { Session } from './types';
 
 const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
@@ -92,7 +93,8 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
     ),
     zkConfigProvider,
     proofProvider: httpClientProofProvider(config.proverServerUri, zkConfigProvider),
-    publicDataProvider: indexerPublicDataProvider(config.indexerUri, config.indexerWsUri),
+    // The app's own indexer, not the wallet's: the wallet may point at an endpoint this origin cannot call.
+    publicDataProvider: indexerPublicDataProvider(appConfig.network.indexer, appConfig.network.indexerWS),
     walletProvider: {
       getCoinPublicKey: () => addresses.shieldedCoinPublicKey,
       getEncryptionPublicKey: () => addresses.shieldedEncryptionPublicKey,

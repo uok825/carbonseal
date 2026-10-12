@@ -91,6 +91,13 @@ curl --proto '=https' --tlsv1.2 -LsSf \
 compact update 0.31.1
 ```
 
+Preprod's indexer and node are hosted by Blockfrost since 9 Oct 2026 (the old `indexer.preprod.midnight.network` endpoints are decommissioned), so you need a free [Blockfrost](https://blockfrost.io) project token for Midnight preprod:
+
+```bash
+echo 'BLOCKFROST_PROJECT_ID=<token>' > apps/web/.env.local   # web app (server side only)
+export BLOCKFROST_PROJECT_ID=<token>                       # CLI, or put it in apps/cli/.state/blockfrost-preprod.token
+```
+
 Then:
 
 ```bash
@@ -101,7 +108,7 @@ npm run dev       # web app on http://localhost:5173, reading the preprod regist
 
 ### Web app
 
-The app reads the registry's public state straight from the Midnight indexer. No wallet is needed for the following pages:
+The app reads the registry's public state straight from the Midnight indexer. The browser calls `/indexer` on the app's own origin and the server adds the Blockfrost token, so the token never reaches the page (`vite.config.ts` does this for `npm run dev` and `vite preview`). No wallet is needed for the following pages:
 - **Overview:** live registry figures.
 - **Buyer:** verify a shipment, e.g. `CLI-MURFA8GB` on preprod.
 - **Registry:** the whole public ledger.
@@ -140,6 +147,8 @@ Browser runs on preprod:
 Configuration lives in `apps/web/.env` (see `.env.example`):
 - `VITE_NETWORK_ID`: `preprod` (default), `preview` or `undeployed`.
 - `VITE_CONTRACT_ADDRESS`: defaults to the public preprod registry.
+- `BLOCKFROST_PROJECT_ID`: the indexer token, added by the `/indexer` proxy. Keep it in `.env.local`.
+- `VITE_INDEXER_URL` / `VITE_INDEXER_WS_URL`: optional, to call an indexer directly instead of the proxy.
 
 ### Local Midnight network
 

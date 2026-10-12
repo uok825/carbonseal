@@ -14,6 +14,20 @@ export const zkConfigPath = path.resolve(cliRoot, '../../packages/contract/src/m
 
 const proofServer = process.env.MN_PROOF_SERVER_URL ?? 'http://127.0.0.1:6300';
 
+/**
+ * Token for the hosted preprod indexer and node (Blockfrost): BLOCKFROST_PROJECT_ID,
+ * or .state/blockfrost-preprod.token. Read lazily so local runs never need one.
+ */
+const blockfrostToken = (): string => {
+  const fromEnv = process.env.BLOCKFROST_PROJECT_ID;
+  if (fromEnv) return fromEnv;
+  const file = path.join(cliRoot, '.state', 'blockfrost-preprod.token');
+  if (existsSync(file)) return readFileSync(file, 'utf8').trim();
+  throw new Error('Set BLOCKFROST_PROJECT_ID (or apps/cli/.state/blockfrost-preprod.token) to reach preprod.');
+};
+
+const blockfrost = (url: string): string => `${url}?project_id=${blockfrostToken()}`;
+
 export const NETWORKS: Record<NetworkName, EnvironmentConfiguration> = {
   // midnightntwrk/midnight-local-dev standalone.yml
   local: {
@@ -29,10 +43,18 @@ export const NETWORKS: Record<NetworkName, EnvironmentConfiguration> = {
   preprod: {
     walletNetworkId: 'preprod',
     networkId: 'preprod',
-    indexer: 'https://indexer.preprod.midnight.network/api/v4/graphql',
-    indexerWS: 'wss://indexer.preprod.midnight.network/api/v4/graphql/ws',
-    node: 'https://rpc.preprod.midnight.network',
-    nodeWS: 'wss://rpc.preprod.midnight.network',
+    get indexer() {
+      return blockfrost('https://midnight-preprod.blockfrost.io/api/v0');
+    },
+    get indexerWS() {
+      return blockfrost('wss://midnight-preprod.blockfrost.io/api/v0/ws');
+    },
+    get node() {
+      return blockfrost('https://rpc.midnight-preprod.blockfrost.io');
+    },
+    get nodeWS() {
+      return blockfrost('wss://rpc.midnight-preprod.blockfrost.io');
+    },
     proofServer,
     faucet: 'https://midnight-tmnight-preprod.nethermind.dev/',
   },
