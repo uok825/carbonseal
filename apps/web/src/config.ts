@@ -5,6 +5,8 @@ export type NetworkConfig = {
   readonly label: string;
   readonly indexer: string;
   readonly indexerWS: string;
+  /** False where the host cannot proxy WebSockets: the app then polls the indexer over HTTP. */
+  readonly live: boolean;
 };
 
 /**
@@ -17,7 +19,7 @@ const sameOriginIndexer = () => ({
   indexerWS: `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/indexer/ws`,
 });
 
-const NETWORKS: Record<string, NetworkConfig> = {
+const NETWORKS: Record<string, Omit<NetworkConfig, 'live'>> = {
   preprod: { id: 'preprod', label: 'Preprod', ...sameOriginIndexer() },
   preview: { id: 'preview', label: 'Preview', ...sameOriginIndexer() },
   // A local devnet from infra/devnet.yml.
@@ -39,6 +41,7 @@ const network: NetworkConfig = {
   ...known,
   indexer: import.meta.env.VITE_INDEXER_URL || known.indexer,
   indexerWS: import.meta.env.VITE_INDEXER_WS_URL || known.indexerWS,
+  live: import.meta.env.VITE_INDEXER_LIVE !== '0',
 };
 
 const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS || (networkId === 'preprod' ? PREPROD_REGISTRY : '');

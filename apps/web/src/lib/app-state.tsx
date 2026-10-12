@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { type CarbonSealClient, type RegistrySnapshot, type StoredReport, watchRegistry } from '@carbonseal/api';
-import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Observable } from 'rxjs';
 
 import { createAuditChannel } from '../backend/audit-channel';
+import { appPublicDataProvider } from '../backend/indexer';
 import type { WalletChoice } from '../backend/wallet';
 import { Button, Modal } from '../components/ui';
 import type { AuditChannel, AuditPackage, Session } from '../backend/types';
@@ -34,7 +34,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const { network, contractAddress } = config;
 
   const registry$ = useMemo(
-    () => watchRegistry(indexerPublicDataProvider(network.indexer, network.indexerWS), contractAddress),
+    () => watchRegistry(appPublicDataProvider(), contractAddress, network.live ? 15_000 : 10_000),
     [network, contractAddress],
   );
   const audits = useMemo(() => createAuditChannel(`carbonseal:audits:${contractAddress}`), [contractAddress]);

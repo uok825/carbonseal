@@ -15,3 +15,5 @@ apps/web/public/zkir/
 
 # CLI participant keys and reports (unencrypted, dev only)
 apps/cli/.state/
+apps/web/.vercel-site/
+.vercel/

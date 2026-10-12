@@ -18,7 +18,6 @@ import type { CarbonSealPrivateState } from '@carbonseal/contract';
 import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
-import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { fromHex, toHex } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import {
   type Binding,
@@ -31,7 +30,7 @@ import {
 import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 import semver from 'semver';
 
-import { config as appConfig } from '../config';
+import { appPublicDataProvider } from './indexer';
 import type { Session } from './types';
 
 const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
@@ -94,7 +93,7 @@ const createProviders = async (wallet: ConnectedAPI): Promise<CarbonSealProvider
     zkConfigProvider,
     proofProvider: httpClientProofProvider(config.proverServerUri, zkConfigProvider),
     // The app's own indexer, not the wallet's: the wallet may point at an endpoint this origin cannot call.
-    publicDataProvider: indexerPublicDataProvider(appConfig.network.indexer, appConfig.network.indexerWS),
+    publicDataProvider: appPublicDataProvider(),
     walletProvider: {
       getCoinPublicKey: () => addresses.shieldedCoinPublicKey,
       getEncryptionPublicKey: () => addresses.shieldedEncryptionPublicKey,

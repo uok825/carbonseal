@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_WALLET_BRIDGE?: string;
   readonly VITE_INDEXER_URL?: string;
   readonly VITE_INDEXER_WS_URL?: string;
+  readonly VITE_INDEXER_LIVE?: string;
 }
 
 interface ImportMeta {

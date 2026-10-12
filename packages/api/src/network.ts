@@ -11,7 +11,7 @@ import {
 } from '@carbonseal/contract';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import type { PublicDataProvider } from '@midnight-ntwrk/midnight-js-types';
-import { type Observable, distinctUntilChanged, filter, from, interval, map, merge, shareReplay, switchMap } from 'rxjs';
+import { type Observable, distinctUntilChanged, filter, from, map, merge, shareReplay, switchMap, timer } from 'rxjs';
 
 import type { AttestInput, CarbonSealClient, CertifyInput, StoredReport, TxReceipt } from './client.js';
 import {
@@ -37,7 +37,7 @@ export const watchRegistry = (
 ): Observable<RegistrySnapshot> =>
   merge(
     publicData.contractStateObservable(contractAddress, { type: 'latest' }),
-    interval(pollMs).pipe(
+    timer(0, pollMs).pipe(
       switchMap(() => from(publicData.queryContractState(contractAddress))),
       filter((state) => state !== null),
     ),
